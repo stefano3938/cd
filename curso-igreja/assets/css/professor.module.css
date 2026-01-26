@@ -1,0 +1,349 @@
+/* Layout Mobile-First para área do Professor */
+.container {
+  min-height: 100vh;
+  background: var(--gray-100);
+}
+
+.header {
+  background: var(--primary-blue);
+  color: white;
+  padding: var(--spacing-md);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerTitle {
+  font-size: var(--font-lg);
+  font-weight: 600;
+}
+
+.logoutBtn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: var(--font-lg);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  margin-right: var(--spacing-sm);
+}
+
+.content {
+  padding: var(--spacing-md);
+}
+
+/* Cards de Turma */
+.turmasList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.turmaCard {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border-left: 4px solid var(--primary-blue);
+}
+
+.turmaCard:active {
+  transform: scale(0.98);
+}
+
+.turmaNome {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-xs);
+}
+
+.turmaInfo {
+  color: var(--gray-500);
+  font-size: var(--font-sm);
+}
+
+.turmaHorario {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  color: var(--gray-600);
+  font-size: var(--font-sm);
+}
+
+/* Lista de Módulos e Aulas */
+.modulesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.moduleCard {
+  background: white;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.moduleHeader {
+  background: var(--gray-50);
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.moduleName {
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.classesList {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.classItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--gray-100);
+  cursor: pointer;
+}
+
+.classItem:last-child {
+  border-bottom: none;
+}
+
+.classItem:active {
+  background: var(--gray-50);
+}
+
+.className {
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.classDate {
+  font-size: var(--font-sm);
+  color: var(--gray-500);
+}
+
+.classStatus {
+  font-size: var(--font-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-full);
+}
+
+.statusDone {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.statusPending {
+  background: var(--gray-200);
+  color: var(--gray-600);
+}
+
+/* Tela de Chamada */
+.chamadaHeader {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.chamadaTitle {
+  font-size: var(--font-lg);
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-xs);
+}
+
+.chamadaSubtitle {
+  color: var(--gray-500);
+  font-size: var(--font-sm);
+}
+
+.chamadaStats {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+.statBox {
+  text-align: center;
+}
+
+.statNumber {
+  font-size: var(--font-2xl);
+  font-weight: 700;
+}
+
+.statNumberPresente {
+  color: var(--success);
+}
+
+.statNumberFalta {
+  color: var(--error);
+}
+
+.statLabel {
+  font-size: var(--font-sm);
+  color: var(--gray-500);
+}
+
+/* Lista de Alunos para Chamada */
+.alunosList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.alunoCard {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.alunoNome {
+  font-weight: 500;
+  color: var(--gray-800);
+}
+
+.presencaBtns {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.presencaBtn {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  font-size: var(--font-lg);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btnPresente {
+  background: var(--gray-100);
+  color: var(--gray-400);
+}
+
+.btnPresente.active,
+.btnPresente:hover {
+  background: var(--success);
+  color: white;
+  border-color: var(--success);
+}
+
+.btnFalta {
+  background: var(--gray-100);
+  color: var(--gray-400);
+}
+
+.btnFalta.active,
+.btnFalta:hover {
+  background: var(--error);
+  color: white;
+  border-color: var(--error);
+}
+
+/* Botão de Salvar */
+.saveContainer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--spacing-md);
+  background: white;
+  border-top: 1px solid var(--gray-200);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.saveBtn {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.saveBtn:hover {
+  background: var(--blue-hover);
+}
+
+.saveBtn:disabled {
+  background: var(--gray-300);
+  cursor: not-allowed;
+}
+
+/* Estados */
+.loading {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--gray-500);
+}
+
+.empty {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--gray-500);
+}
+
+.success {
+  background: var(--success-light);
+  color: var(--success);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  text-align: center;
+}
+
+/* Desktop adjustments */
+@media (min-width: 768px) {
+  .content {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+  }
+
+  .chamadaStats {
+    gap: var(--spacing-3xl);
+  }
+
+  .presencaBtn {
+    width: 56px;
+    height: 56px;
+    font-size: var(--font-xl);
+  }
+}

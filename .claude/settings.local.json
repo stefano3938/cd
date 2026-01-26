@@ -11,7 +11,10 @@
       "Bash(del:*)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(git -C \"c:/Users/stefano/Documents/GitHub/cd\" status)",
+      "Bash(git -C \"c:/Users/stefano/Documents/GitHub/cd\" diff --stat)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: implement complete course management system\n\n- Add authentication with login page and API\n- Add admin area with dashboard, courses, modules, classes management\n- Add professors, students, and turmas \\(class groups\\) CRUD\n- Add professor area with mobile-first attendance tracking\n- Add CSV import for bulk student registration\n- Add attendance reports with statistics and CSV export\n- Configure Supabase integration with schema and seed data\n- Add CSS modules for admin and professor interfaces\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "deny": [],
     "ask": []
