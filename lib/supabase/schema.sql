@@ -1,14 +1,19 @@
 -- Sistema de Controle de Curso - Database Schema
 -- Execute este script no SQL Editor do Supabase
 
--- Tabela de Usuários (Admins e Professores)
+-- Tabela de Usuários (Admins, Professores e Monitores)
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   nome TEXT NOT NULL,
   telefone TEXT,
-  role TEXT NOT NULL CHECK (role IN ('admin', 'professor')),
+  role TEXT NOT NULL CHECK (role IN ('admin', 'professor', 'monitor')),
+  foto_url TEXT,
+  data_nascimento DATE,
+  nome_lider_direto TEXT,
+  geracao TEXT,
+  telefone_lider_direto TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -71,6 +76,13 @@ CREATE TABLE students (
   email TEXT,
   telefone TEXT,
   turma_id UUID NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
+  foto_url TEXT,
+  data_nascimento DATE,
+  nome_responsavel TEXT,
+  telefone_responsavel TEXT,
+  nome_lider_direto TEXT,
+  geracao TEXT,
+  telefone_lider_direto TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

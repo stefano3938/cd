@@ -38,11 +38,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { href: '/admin/dashboard', label: 'Dashboard' },
-    { href: '/admin/cursos', label: 'Cursos' },
-    { href: '/admin/turmas', label: 'Turmas' },
-    { href: '/admin/professores', label: 'Professores' },
-    { href: '/admin/alunos', label: 'Alunos' },
-    { href: '/admin/relatorios', label: 'Relatórios' },
+    { href: '/admin/usuarios', label: 'Cadastro de Usuários' },
+    { href: '/admin/matriculas', label: 'Matrículas' },
+    { href: '/admin/chamadas', label: 'Caderneta de Chamadas' },
+    { href: '/admin/frequencia', label: 'Controle de Frequência' },
+    { href: '/admin/consulta-cadastros', label: 'Consulta de Cadastros' },
+    { href: '/admin/consulta-turmas', label: 'Consulta de Turmas' },
   ]
 
   if (!user) return null

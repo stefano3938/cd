@@ -1,6 +1,6 @@
 // Tipos do Banco de Dados
 
-export type UserRole = 'admin' | 'professor'
+export type UserRole = 'admin' | 'professor' | 'monitor'
 
 export interface User {
   id: string
@@ -8,6 +8,11 @@ export interface User {
   nome: string
   telefone?: string
   role: UserRole
+  foto_url?: string
+  data_nascimento?: string
+  nome_lider_direto?: string
+  geracao?: string
+  telefone_lider_direto?: string
   created_at: string
 }
 
@@ -61,6 +66,13 @@ export interface Student {
   email?: string
   telefone?: string
   turma_id: string
+  foto_url?: string
+  data_nascimento?: string
+  nome_responsavel?: string
+  telefone_responsavel?: string
+  nome_lider_direto?: string
+  geracao?: string
+  telefone_lider_direto?: string
   created_at: string
 }
 
