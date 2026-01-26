@@ -23,7 +23,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { nome, email, telefone, turma_id } = body
+  const {
+    nome,
+    email,
+    telefone,
+    turma_id,
+    data_nascimento,
+    nome_responsavel,
+    telefone_responsavel,
+    nome_lider_direto,
+    geracao,
+    telefone_lider_direto
+  } = body
 
   if (!nome || !turma_id) {
     return NextResponse.json({ error: 'Campos obrigatórios: nome, turma_id' }, { status: 400 })
@@ -31,7 +42,18 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase
     .from('students')
-    .insert({ nome, email, telefone, turma_id })
+    .insert({
+      nome,
+      email: email || null,
+      telefone: telefone || null,
+      turma_id,
+      data_nascimento: data_nascimento || null,
+      nome_responsavel: nome_responsavel || null,
+      telefone_responsavel: telefone_responsavel || null,
+      nome_lider_direto: nome_lider_direto || null,
+      geracao: geracao || null,
+      telefone_lider_direto: telefone_lider_direto || null
+    })
     .select()
     .single()
 
