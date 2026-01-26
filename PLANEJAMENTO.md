@@ -10,6 +10,81 @@
 - 10:30 - 12:30
 - 18:00 - 20:00
 
+---
+
+## Estrutura de Abas do Sistema
+
+### ABA 1 - CADASTRO DE USUÁRIOS
+- **Visibilidade:** Somente para Admins
+- **Descrição:** Local para inserção de novos usuários (admins, professores e monitores)
+
+### ABA 2 - MATRÍCULAS
+- **Visibilidade:** Somente para Admins
+- **Descrição:** Local para inserção de novos cadastros de alunos nas turmas
+
+### ABA 3 - CADERNETA DE CHAMADAS
+- **Visibilidade:** Admins e Professores
+- **Descrição:** Local para inserção das presenças semanalmente
+
+### ABA 4 - CONTROLE DE FREQUÊNCIA
+- **Visibilidade:** Somente para Admins
+- **Descrição:** Armazenamento dos dados das frequências
+
+### ABA 5 - CONSULTA DE CADASTROS
+- **Visibilidade:** Admins e Professores
+- **Descrição:** Consulta das informações da ficha de matrícula dos alunos
+
+### ABA 6 - CONSULTA DE TURMAS
+- **Visibilidade:** Somente para Admins
+- **Descrição:** Armazenamento dos dados das turmas anteriores
+
+---
+
+## Formulários do Sistema
+
+### Formulário de Matrícula do Aluno
+
+| Campo | Tipo | Obrigatório |
+|-------|------|-------------|
+| Foto | Upload de imagem | Sim |
+| Nome Completo | Texto | Sim |
+| Data de Nascimento | Data | Sim |
+| Idade | Número (calculado) | Automático |
+| Nome do Responsável | Texto | Sim |
+| Telefone do Responsável | Telefone | Sim |
+| E-mail | Email | Sim |
+| Nome do Líder Direto | Texto | Sim |
+| Geração | Texto | Sim |
+| Telefone do Líder Direto | Telefone | Sim |
+| Turma | Seleção (07h30, 10h30, 18h00) | Sim |
+
+### Formulário de Cadastro do Professor/Monitor
+
+| Campo | Tipo | Obrigatório |
+|-------|------|-------------|
+| Foto | Upload de imagem | Sim |
+| Nome Completo | Texto | Sim |
+| Data de Nascimento | Data | Sim |
+| E-mail | Email | Sim |
+| Nome do Líder Direto | Texto | Sim |
+| Geração | Texto | Sim |
+| Telefone do Líder Direto | Telefone | Sim |
+
+---
+
+## Permissões por Tipo de Usuário
+
+| Funcionalidade | Admin | Professor | Monitor |
+|----------------|-------|-----------|---------|
+| Cadastro de Usuários | ✅ | ❌ | ❌ |
+| Matrículas | ✅ | ❌ | ❌ |
+| Caderneta de Chamadas | ✅ | ✅ | ❌ |
+| Controle de Frequência | ✅ | ❌ | ❌ |
+| Consulta de Cadastros | ✅ | ✅ | ❌ |
+| Consulta de Turmas | ✅ | ❌ | ❌ |
+
+---
+
 ## O que foi implementado
 
 ### ✅ Estrutura Base do Projeto
