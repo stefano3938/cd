@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
+
+// Cliente com service role para gerenciar usuários no Auth
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+)
 
 export async function GET(
   request: Request,
@@ -52,6 +60,25 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
+
+    // 1. Buscar o auth_id do usuário
+    const { data: user, error: fetchError } = await supabase
+      .from('users')
+      .select('auth_id')
+      .eq('id', id)
+      .single()
+
+    if (fetchError) throw fetchError
+
+    // 2. Deletar do Supabase Auth (se tiver auth_id)
+    if (user?.auth_id) {
+      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(user.auth_id)
+      if (authError) {
+        console.error('Error deleting auth user:', authError)
+      }
+    }
+
+    // 3. Deletar da tabela users
     const { error } = await supabase
       .from('users')
       .delete()

@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
+
+// Cliente com service role para criar usuários no Auth
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+)
 
 export async function GET() {
   try {
@@ -26,15 +34,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Campos obrigatórios não preenchidos' }, { status: 400 })
     }
 
-    // Hash simples para demo - em produção usar bcrypt
-    const password_hash = Buffer.from(password).toString('base64')
+    // 1. Criar usuário no Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true // Confirma email automaticamente
+    })
 
+    if (authError) {
+      if (authError.message.includes('already been registered')) {
+        return NextResponse.json({ error: 'E-mail já cadastrado' }, { status: 400 })
+      }
+      throw authError
+    }
+
+    // 2. Criar perfil na tabela users
     const { data, error } = await supabase
       .from('users')
       .insert([{
+        auth_id: authData.user.id,
         nome,
         email,
-        password_hash,
         role,
         data_nascimento: data_nascimento || null,
         nome_lider_direto: nome_lider_direto || null,
@@ -45,6 +65,9 @@ export async function POST(request: Request) {
       .single()
 
     if (error) {
+      // Se falhar ao criar perfil, deletar usuário do Auth
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+
       if (error.code === '23505') {
         return NextResponse.json({ error: 'E-mail já cadastrado' }, { status: 400 })
       }

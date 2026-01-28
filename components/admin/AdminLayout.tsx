@@ -1,38 +1,29 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import styles from '@/assets/css/admin.module.css'
-
-interface User {
-  id: string
-  nome: string
-  email: string
-  role: string
-}
+import { useAuth } from '@/lib/auth/AuthContext'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [user, setUser] = useState<User | null>(null)
+  const { profile, loading, signOut, isAdmin } = useAuth()
 
   useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (!userData) {
+    if (!loading && !profile) {
       router.push('/login')
       return
     }
-    const parsed = JSON.parse(userData)
-    if (parsed.role !== 'admin') {
+    if (!loading && !isAdmin) {
       router.push('/professor/chamada')
       return
     }
-    setUser(parsed)
-  }, [router])
+  }, [loading, profile, isAdmin, router])
 
-  const handleLogout = () => {
-    localStorage.removeItem('user')
+  const handleLogout = async () => {
+    await signOut()
     router.push('/login')
   }
 
@@ -46,7 +37,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/consulta-turmas', label: 'Consulta de Turmas' },
   ]
 
-  if (!user) return null
+  if (loading || !profile) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        Carregando...
+      </div>
+    )
+  }
 
   return (
     <div className={styles.layout}>
@@ -70,7 +67,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {navItems.find(i => i.href === pathname)?.label || 'Admin'}
           </h1>
           <div className={styles.userInfo}>
-            <span className={styles.userName}>{user.nome}</span>
+            <span className={styles.userName}>{profile.nome}</span>
             <button onClick={handleLogout} className={styles.logoutBtn}>
               Sair
             </button>
