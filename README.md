@@ -55,7 +55,11 @@ curso-igreja/
     └── supabase/         # Configuração Supabase
         ├── client.ts
         ├── types.ts
-        └── schema.sql
+        └── server.ts      # cliente do banco (somente servidor)
+supabase/
+├── migrations/            # alterações do banco, em ordem
+├── seed.sql               # dados iniciais
+└── check_rls.sql          # verificação do RLS
 ```
 
 ## Configuração
@@ -80,7 +84,8 @@ SESSION_SECRET=string_aleatoria_com_32+_caracteres
 
 ### 3. Criar tabelas no banco
 
-Execute o script SQL em `lib/supabase/schema.sql` no SQL Editor do Supabase.
+Execute no SQL Editor do Supabase, em ordem, os arquivos de `supabase/migrations/` e depois `supabase/seed.sql`.
+Detalhes em [`docs/BANCO_DE_DADOS.md`](docs/BANCO_DE_DADOS.md).
 
 ### 4. Rodar o projeto
 

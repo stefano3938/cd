@@ -1,6 +1,8 @@
 # Mantém o projeto Supabase (plano gratuito) ativo.
 # O Supabase pausa projetos gratuitos após ~7 dias sem atividade;
 # esta tarefa faz uma consulta leve a cada 3 dias.
+# Com o RLS ativo a resposta é 401 (permission denied) — esperado: a
+# requisição chega ao banco e conta como atividade.
 #
 # Secrets necessários (Settings > Secrets and variables > Actions):
 #   SUPABASE_URL       ex.: https://odvsifwmbijviuprbrne.supabase.co

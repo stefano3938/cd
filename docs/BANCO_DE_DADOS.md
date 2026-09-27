@@ -71,7 +71,7 @@ Leitura: `A ──< B` = "A tem vários B".
 `status` (`presente` \| `falta`), `marked_by → users`, `marked_at`,
 `UNIQUE(student_id, class_id)` → permite `upsert` da chamada.
 
-O schema completo está em [`lib/supabase/schema.sql`](../lib/supabase/schema.sql)
+O schema completo está em [`supabase/migrations/`](../supabase/migrations/)
 e os tipos TypeScript em [`lib/supabase/types.ts`](../lib/supabase/types.ts).
 **Ao mudar uma tabela, atualize os dois.**
 
@@ -92,16 +92,15 @@ e os tipos TypeScript em [`lib/supabase/types.ts`](../lib/supabase/types.ts).
 
 ## 4. Migrations
 
-Hoje o schema é um único `schema.sql` executado manualmente. Para organizar a
-evolução do banco, usar o **Supabase CLI**:
+O banco é versionado em `supabase/migrations/` (formato do **Supabase CLI**):
 
 ```
 supabase/
   migrations/
-    20260101000000_initial_schema.sql   # conteúdo atual de schema.sql
-    20260102000000_enable_rls.sql
-    ...
-  seed.sql
+    20260101000000_initial_schema.sql   # tabelas e índices
+    20260927000000_enable_rls.sql       # RLS + bloqueio das chaves públicas
+  seed.sql                              # dados iniciais
+  check_rls.sql                         # consulta de verificação do RLS
 ```
 
 Comandos:
@@ -123,33 +122,45 @@ Regras:
 
 ## 5. Segurança: RLS (Row Level Security)
 
-Atualmente **nenhuma tabela tem RLS**, e a chave `anon` é pública. Isso permite
-que qualquer pessoa com a URL do projeto leia e altere todos os dados.
+A aplicação acessa o banco **só pelo servidor, com a service role key**, que
+ignora o RLS. A migration
+[`20260927000000_enable_rls.sql`](../supabase/migrations/20260927000000_enable_rls.sql):
 
-Como a aplicação acessa o banco **só pelo servidor com a service role key**
-(ver `BACKEND.md`), a solução mais simples é ativar RLS **sem políticas** —
-isso bloqueia totalmente a chave `anon`, e a service role continua funcionando:
+- ativa o RLS em todas as tabelas, **sem políticas** — nada é liberado para as
+  chaves públicas (`anon` / `authenticated`);
+- revoga as permissões dessas chaves nas tabelas atuais e nas futuras.
 
-```sql
--- supabase/migrations/<data>_enable_rls.sql
-ALTER TABLE users             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE courses           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE modules           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE classes           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE turmas            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE turma_professors  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE students          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE attendance        ENABLE ROW LEVEL SECURITY;
-```
+Resultado: com a URL do projeto e a anon key, ninguém lê nem altera dados pela
+REST API do Supabase. Testado em Postgres 16: `anon` recebe
+`permission denied`, `service_role` continua lendo normalmente.
 
-> Importante: aplique isso **depois** de trocar as rotas para a service role
-> key; caso contrário, a aplicação para de funcionar.
+### Como aplicar
+
+1. **Antes**, configure `SUPABASE_SERVICE_ROLE_KEY` na aplicação (`.env.local`
+   e hospedagem) e confirme que o login funciona. Com o RLS ativo, a anon key
+   não enxerga nada.
+2. No Supabase: **SQL Editor → New query**, cole o conteúdo da migration e rode.
+   (Ou `npx supabase db push`, se usar o CLI.) Pode ser rodada mais de uma vez.
+3. Rode [`supabase/check_rls.sql`](../supabase/check_rls.sql): todas as linhas
+   devem ter `rls_ativo = true` e `anon_pode_ler = false`.
+
+### Regras para o futuro
+
+- Toda tabela nova: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;` na mesma
+  migration que a cria.
+- Views devem ser criadas com `WITH (security_invoker = true)`; senão rodam com
+  as permissões do dono e ignoram o RLS.
+- Só crie políticas se um dia o navegador precisar acessar o banco direto
+  (ex.: Supabase Auth + Realtime). Enquanto tudo passar pela API, não precisa.
+- O keep-alive (`.github/workflows/supabase-keepalive.yml`) usa a anon key e
+  passa a receber `401 permission denied` — é esperado: a requisição ainda
+  chega ao banco e conta como atividade.
 
 ---
 
 ## 6. Seed (dados iniciais)
 
-O hash em `lib/supabase/seed.sql` **não corresponde** à senha `admin` citada no
+O hash em `supabase/seed.sql` **não corresponde** à senha `admin` citada no
 comentário — o login do admin inicial falha. Para gerar um hash correto:
 
 ```bash
@@ -186,7 +197,7 @@ ON CONFLICT (email) DO NOTHING;
 Exemplo de view de frequência:
 
 ```sql
-CREATE VIEW vw_frequencia_aluno AS
+CREATE VIEW vw_frequencia_aluno WITH (security_invoker = true) AS
 SELECT
   s.id            AS student_id,
   s.nome,
