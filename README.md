@@ -107,3 +107,8 @@ Acesse [http://localhost:3000](http://localhost:3000)
 ## Desenvolvimento
 
 O foco atual é na funcionalidade. Segurança e testes serão implementados em versões futuras.
+
+## Documentação técnica
+
+- [Back-end](docs/BACKEND.md) — organização da API, autenticação, permissões e padrões de rota
+- [Banco de Dados](docs/BANCO_DE_DADOS.md) — modelo das tabelas, migrations, RLS e seed
