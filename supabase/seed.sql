@@ -1,16 +1,35 @@
--- Seed inicial - Criar usuário admin
+-- Seed inicial - cria (ou redefine) o usuário administrador.
+--
+-- Como usar (dá para fazer pelo celular):
+--   1. Troque e-mail, nome e senha nas 3 linhas abaixo (senha: 8+ caracteres).
+--   2. Supabase > SQL Editor > New query > cole este arquivo > Run.
+--
+-- Se o e-mail já existir, a senha é redefinida e o perfil vira admin.
+-- O hash é gerado pelo próprio banco (bcrypt via pgcrypto), então nenhuma
+-- senha ou hash fica salvo no repositório. Não faça commit da sua senha.
 
--- Execute este script no SQL Editor do Supabase após executar o schema.sql
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
--- Inserir usuário administrador
--- Email: admin@capacitacao.com
--- Senha: admin
--- Hash bcrypt da senha "admin": $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+DO $$
+DECLARE
+  v_email text := 'admin@capacitacao.com';
+  v_nome  text := 'Administrador';
+  v_senha text := 'TROQUE_ESTA_SENHA';
+BEGIN
+  IF v_senha = 'TROQUE_ESTA_SENHA' OR length(v_senha) < 8 THEN
+    RAISE EXCEPTION 'Defina uma senha com pelo menos 8 caracteres antes de rodar o seed';
+  END IF;
 
-INSERT INTO users (email, password_hash, nome, role)
-VALUES (
-  'admin@capacitacao.com',
-  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
-  'Administrador',
-  'admin'
-);
+  INSERT INTO public.users (email, password_hash, nome, role)
+  VALUES (
+    trim(v_email),
+    extensions.crypt(v_senha, extensions.gen_salt('bf', 10)),
+    v_nome,
+    'admin'
+  )
+  ON CONFLICT (email) DO UPDATE
+    SET password_hash = EXCLUDED.password_hash,
+        role          = 'admin';
+
+  RAISE NOTICE 'Administrador % pronto', v_email;
+END $$;

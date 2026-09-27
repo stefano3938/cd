@@ -158,26 +158,35 @@ REST API do Supabase. Testado em Postgres 16: `anon` recebe
 
 ---
 
-## 6. Seed (dados iniciais)
+## 6. Seed e senhas
 
-O hash em `supabase/seed.sql` **não corresponde** à senha `admin` citada no
-comentário — o login do admin inicial falha. Para gerar um hash correto:
+O hash de senha é gerado **pelo próprio banco** (bcrypt via extensão
+`pgcrypto`), compatível com o `bcryptjs` usado no login. Assim nenhuma senha ou
+hash fica no repositório, e tudo pode ser feito pelo SQL Editor do Supabase,
+inclusive pelo celular.
 
-```bash
-node -e "console.log(require('bcryptjs').hashSync('SUA_SENHA_FORTE', 10))"
-```
+### Criar o administrador — [`supabase/seed.sql`](../supabase/seed.sql)
 
-E use o resultado no seed:
+1. Troque `v_email`, `v_nome` e `v_senha` (mínimo 8 caracteres).
+2. Supabase → **SQL Editor → New query** → cole → **Run**.
+
+Se o e-mail já existir, a senha é redefinida e o perfil vira `admin` — serve
+também para recuperar o acesso de admin. O script recusa rodar com a senha
+padrão `TROQUE_ESTA_SENHA`.
+
+### Redefinir senha — [`supabase/reset_password.sql`](../supabase/reset_password.sql)
+
+Usuários criados antes da correção têm a senha salva em Base64 e não
+conseguem logar. Para encontrá-los:
 
 ```sql
-INSERT INTO users (email, password_hash, nome, role)
-VALUES ('admin@capacitacao.com', '<hash gerado>', 'Administrador', 'admin')
-ON CONFLICT (email) DO NOTHING;
+SELECT email, nome, role FROM public.users WHERE password_hash NOT LIKE '$2%';
 ```
 
-- Não versionar senhas reais; troque a senha no primeiro acesso.
-- Dados de exemplo (cursos, turmas) podem ir no mesmo `seed.sql`, só para
-  desenvolvimento.
+Para cada um, troque e-mail e senha no script e rode. Depois informe a nova
+senha à pessoa por um canal privado.
+
+> Não faça commit do arquivo com a senha preenchida.
 
 ---
 

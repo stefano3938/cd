@@ -242,7 +242,8 @@ Situação das rotas existentes e o que fazer com cada uma.
 > `requireUser` em todas as rotas, `marked_by`/`created_by` vindos da sessão,
 > professor restrito às próprias turmas). Senhas de `/api/admin/users` já usam
 > bcrypt. Passo 9 (RLS) pronto em `supabase/migrations/`, falta aplicar no Supabase.
-> Pendentes: redefinir senhas antigas em Base64, passos 7–8.
+> Senhas antigas em Base64: redefinir com `supabase/reset_password.sql`.
+> Pendentes: passos 7–8.
 
 1. **Remover** `/api/create-admin` e `/api/test-db`.
 2. Criar `lib/supabase/server.ts`, `.env.example` e trocar os imports de
