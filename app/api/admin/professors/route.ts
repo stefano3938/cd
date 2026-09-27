@@ -2,44 +2,46 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/guard'
 import { hashPassword } from '@/lib/auth/password'
+import { handleError, parseBody } from '@/lib/http/errors'
+import { createProfessorSchema } from '@/lib/validation/schemas'
+
+const PROFESSOR_COLUMNS = 'id, email, nome, telefone, created_at'
 
 export async function GET() {
   const auth = await requireUser(['admin'])
   if (auth instanceof NextResponse) return auth
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('id, email, nome, telefone, created_at')
-    .eq('role', 'professor')
-    .order('nome')
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select(PROFESSOR_COLUMNS)
+      .eq('role', 'professor')
+      .order('nome')
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) throw error
+    return NextResponse.json(data)
+  } catch (error) {
+    return handleError(error, 'listar professores')
   }
-  return NextResponse.json(data)
 }
 
 export async function POST(request: NextRequest) {
   const auth = await requireUser(['admin'])
   if (auth instanceof NextResponse) return auth
 
-  const body = await request.json()
-  const { email, nome, telefone, senha } = body
+  try {
+    const { senha, ...professor } = await parseBody(request, createProfessorSchema)
+    const password_hash = await hashPassword(senha)
 
-  if (!email || !nome || !senha) {
-    return NextResponse.json({ error: 'Campos obrigatórios: email, nome, senha' }, { status: 400 })
+    const { data, error } = await supabase
+      .from('users')
+      .insert({ ...professor, password_hash, role: 'professor' })
+      .select(PROFESSOR_COLUMNS)
+      .single()
+
+    if (error) throw error
+    return NextResponse.json(data, { status: 201 })
+  } catch (error) {
+    return handleError(error, 'criar professor')
   }
-
-  const password_hash = await hashPassword(senha)
-
-  const { data, error } = await supabase
-    .from('users')
-    .insert({ email, nome, telefone, password_hash, role: 'professor' })
-    .select('id, email, nome, telefone, created_at')
-    .single()
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-  return NextResponse.json(data, { status: 201 })
 }

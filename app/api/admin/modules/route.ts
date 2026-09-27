@@ -1,26 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/guard'
+import { handleError, parseBody } from '@/lib/http/errors'
+import { createModuleSchema } from '@/lib/validation/schemas'
 
 export async function POST(request: NextRequest) {
   const auth = await requireUser(['admin'])
   if (auth instanceof NextResponse) return auth
 
-  const body = await request.json()
-  const { course_id, nome, ordem, numero_de_aulas } = body
+  try {
+    const input = await parseBody(request, createModuleSchema)
 
-  if (!course_id || !nome || ordem === undefined) {
-    return NextResponse.json({ error: 'Campos obrigatórios: course_id, nome, ordem' }, { status: 400 })
+    const { data, error } = await supabase
+      .from('modules')
+      .insert(input)
+      .select()
+      .single()
+
+    if (error) throw error
+    return NextResponse.json(data, { status: 201 })
+  } catch (error) {
+    return handleError(error, 'criar módulo')
   }
-
-  const { data, error } = await supabase
-    .from('modules')
-    .insert({ course_id, nome, ordem, numero_de_aulas: numero_de_aulas || 4 })
-    .select()
-    .single()
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-  return NextResponse.json(data, { status: 201 })
 }

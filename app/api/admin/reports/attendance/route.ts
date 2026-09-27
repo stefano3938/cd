@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/guard'
+import { handleError, parseData } from '@/lib/http/errors'
+import { uuid } from '@/lib/validation/schemas'
 
 export async function GET(request: NextRequest) {
   const auth = await requireUser(['admin'])
   if (auth instanceof NextResponse) return auth
 
-  const turma_id = request.nextUrl.searchParams.get('turma_id')
-  const course_id = request.nextUrl.searchParams.get('course_id')
+  try {
+    return await buildReport(request)
+  } catch (error) {
+    return handleError(error, 'gerar relatório de presença')
+  }
+}
+
+async function buildReport(request: NextRequest) {
+  const turmaParam = request.nextUrl.searchParams.get('turma_id')
+  const courseParam = request.nextUrl.searchParams.get('course_id')
+  const turma_id = turmaParam ? parseData(turmaParam, uuid) : null
+  const course_id = courseParam ? parseData(courseParam, uuid) : null
 
   // Buscar turmas (filtrar por curso se especificado)
   let turmasQuery = supabase
@@ -20,9 +32,7 @@ export async function GET(request: NextRequest) {
 
   const { data: turmas, error: turmasError } = await turmasQuery
 
-  if (turmasError) {
-    return NextResponse.json({ error: turmasError.message }, { status: 500 })
-  }
+  if (turmasError) throw turmasError
 
   // Se turma específica, buscar detalhes
   if (turma_id) {
@@ -33,9 +43,7 @@ export async function GET(request: NextRequest) {
       .eq('turma_id', turma_id)
       .order('nome')
 
-    if (studentsError) {
-      return NextResponse.json({ error: studentsError.message }, { status: 500 })
-    }
+    if (studentsError) throw studentsError
 
     // Buscar turma com curso
     const { data: turma } = await supabase

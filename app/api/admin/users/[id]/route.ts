@@ -1,23 +1,17 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/guard'
-import { hashPassword, MIN_PASSWORD_LENGTH } from '@/lib/auth/password'
+import { hashPassword } from '@/lib/auth/password'
+import { handleError, HttpError, parseBody, parseData } from '@/lib/http/errors'
 import { USER_COLUMNS } from '@/lib/supabase/columns'
+import { idParams, updateUserSchema } from '@/lib/validation/schemas'
 
-const EDITABLE_FIELDS = [
-  'nome', 'email', 'telefone', 'role', 'foto_url', 'data_nascimento',
-  'nome_lider_direto', 'geracao', 'telefone_lider_direto'
-] as const
-
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireUser(['admin'])
   if (auth instanceof NextResponse) return auth
 
   try {
-    const { id } = await params
+    const { id } = parseData(params, idParams)
     const { data, error } = await supabase
       .from('users')
       .select(USER_COLUMNS)
@@ -25,40 +19,28 @@ export async function GET(
       .single()
 
     if (error) throw error
-
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching user:', error)
-    return NextResponse.json({ error: 'Erro ao buscar usuário' }, { status: 500 })
+    return handleError(error, 'buscar usuário')
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireUser(['admin'])
   if (auth instanceof NextResponse) return auth
 
   try {
-    const { id } = await params
-    const body = await request.json()
+    const { id } = parseData(params, idParams)
+    const { password, ...user } = await parseBody(request, updateUserSchema)
 
-    // Só atualiza campos permitidos; a senha é tratada à parte
-    const updateData: Record<string, unknown> = {}
-    for (const field of EDITABLE_FIELDS) {
-      if (field in body) updateData[field] = body[field]
+    // Evita que o admin tire o próprio acesso
+    if (id === auth.userId && user.role && user.role !== 'admin') {
+      throw new HttpError(400, 'Você não pode remover seu próprio perfil de admin')
     }
 
-    if (updateData.role && !['admin', 'professor', 'monitor'].includes(updateData.role as string)) {
-      return NextResponse.json({ error: 'Perfil inválido' }, { status: 400 })
-    }
-
-    if (body.password) {
-      if (String(body.password).length < MIN_PASSWORD_LENGTH) {
-        return NextResponse.json({ error: `A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres` }, { status: 400 })
-      }
-      updateData.password_hash = await hashPassword(body.password)
+    const updateData: Record<string, unknown> = { ...user }
+    if (password) {
+      updateData.password_hash = await hashPassword(password)
     }
 
     const { data, error } = await supabase
@@ -68,27 +50,28 @@ export async function PUT(
       .select(USER_COLUMNS)
       .single()
 
-    if (error) throw error
+    if (error) {
+      if (error.code === '23505') {
+        return NextResponse.json({ error: 'E-mail já cadastrado' }, { status: 409 })
+      }
+      throw error
+    }
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error updating user:', error)
-    return NextResponse.json({ error: 'Erro ao atualizar usuário' }, { status: 500 })
+    return handleError(error, 'atualizar usuário')
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireUser(['admin'])
   if (auth instanceof NextResponse) return auth
 
   try {
-    const { id } = await params
+    const { id } = parseData(params, idParams)
 
     if (id === auth.userId) {
-      return NextResponse.json({ error: 'Você não pode excluir o próprio usuário' }, { status: 400 })
+      throw new HttpError(400, 'Você não pode excluir o próprio usuário')
     }
 
     const { error } = await supabase
@@ -97,10 +80,8 @@ export async function DELETE(
       .eq('id', id)
 
     if (error) throw error
-
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting user:', error)
-    return NextResponse.json({ error: 'Erro ao excluir usuário' }, { status: 500 })
+    return handleError(error, 'excluir usuário')
   }
 }

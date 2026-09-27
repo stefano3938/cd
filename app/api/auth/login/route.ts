@@ -1,30 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/server'
 import { verifyPassword } from '@/lib/auth/password'
+import { checkLoginLimit, recordLoginAttempt } from '@/lib/auth/rate-limit'
 import { SESSION_COOKIE, sessionCookieOptions, signSession } from '@/lib/auth/session'
+import { handleError, parseBody } from '@/lib/http/errors'
+import { getClientIp } from '@/lib/http/ip'
+import { loginSchema } from '@/lib/validation/schemas'
+
+// Hash de uma senha aleatória: comparar contra ele quando o e-mail não existe
+// faz a resposta levar o mesmo tempo, sem revelar quais e-mails estão cadastrados.
+const DUMMY_HASH = '$2b$10$Tyw2G.M1ZmZHv5PP/o72lOJoK.OJ7JG5hw5iYZ2azPqI9iiY/Vl0C'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const { email, password } = await parseBody(request, loginSchema)
+    const ip = getClientIp(request)
+    const emailKey = email.toLowerCase()
 
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email e senha são obrigatórios' },
-        { status: 400 }
-      )
+    try {
+      const limit = await checkLoginLimit(ip, emailKey)
+      if (limit.blocked) {
+        return NextResponse.json(
+          { error: 'Muitas tentativas de login. Aguarde 15 minutos e tente novamente.' },
+          { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+        )
+      }
+    } catch (error) {
+      // Tabela login_attempts ainda não criada: segue sem limite, mas avisa
+      console.error('Rate limit do login indisponível (aplique a migration login_attempts):', error)
     }
 
     // Buscar usuário no banco
     const { data: user, error } = await supabase
       .from('users')
       .select('id, email, nome, role, password_hash')
-      .eq('email', String(email).trim())
+      .eq('email', email)
       .maybeSingle()
 
     if (error) throw error
 
     // Verificar senha
-    const passwordMatch = user ? await verifyPassword(password, user.password_hash) : false
+    const passwordMatch = await verifyPassword(password, user?.password_hash ?? DUMMY_HASH)
+
+    await recordLoginAttempt(ip, emailKey, Boolean(user && passwordMatch))
 
     if (!user || !passwordMatch) {
       return NextResponse.json(
@@ -43,10 +61,6 @@ export async function POST(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Erro no login:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return handleError(error, 'fazer login')
   }
 }

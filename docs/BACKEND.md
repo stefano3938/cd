@@ -210,8 +210,8 @@ Situação das rotas existentes e o que fazer com cada uma.
 | Rota | Métodos | Ação necessária |
 |------|---------|-----------------|
 | `/api/auth/login` | POST | Criar cookie de sessão; remover `debug` e `console.log` |
-| `/api/create-admin` | POST | **Remover** (usar seed/script) |
-| `/api/test-db` | GET | **Remover** |
+| `/api/create-admin` | POST | ✅ Removida (usar `supabase/seed.sql`) |
+| `/api/test-db` | GET | ✅ Removida |
 | `/api/admin/users` | GET POST | Guard admin; bcrypt em vez de Base64; não retornar `password_hash` |
 | `/api/admin/users/[id]` | GET PUT DELETE | Guard admin; mesmo cuidado com senha |
 | `/api/admin/professors` | GET POST | Unificar com `/users` (professor é um `role`) |
@@ -243,7 +243,8 @@ Situação das rotas existentes e o que fazer com cada uma.
 > professor restrito às próprias turmas). Senhas de `/api/admin/users` já usam
 > bcrypt. Passo 9 (RLS) pronto em `supabase/migrations/`, falta aplicar no Supabase.
 > Senhas antigas em Base64: redefinir com `supabase/reset_password.sql`.
-> Pendentes: passos 7–8.
+> Passo 7 concluído: validação `zod` (`lib/validation/schemas.ts`) e erros
+> padronizados (`lib/http/errors.ts`) em todas as rotas. Pendente: passo 8.
 
 1. **Remover** `/api/create-admin` e `/api/test-db`.
 2. Criar `lib/supabase/server.ts`, `.env.example` e trocar os imports de
@@ -268,3 +269,33 @@ Situação das rotas existentes e o que fazer com cada uma.
 - [ ] Usa dados da sessão (id, role) em vez de dados enviados pelo cliente
 - [ ] Erros padronizados, sem detalhes internos
 - [ ] Sem `console.log` de dados pessoais
+
+---
+
+## 10. Proteção contra ataques
+
+| Camada | Onde | Regra |
+|--------|------|-------|
+| Limite de login por e-mail | `lib/auth/rate-limit.ts` (tabela `login_attempts`) | 5 falhas em 15 min → 429 por 15 min |
+| Limite de login por IP | idem | 20 falhas em 15 min → 429 por 15 min |
+| Limite geral da API | `middleware.ts` (memória) | 120 requisições/min por IP → 429 |
+| Bloqueio manual de IP | `middleware.ts`, variável `BLOCKED_IPS` | 403 em qualquer página ou rota |
+| Validação de entrada | `lib/validation/schemas.ts` | Corpo, parâmetros e IDs validados; campos extras descartados |
+| Erros sem detalhes internos | `lib/http/errors.ts` | Mensagem do banco nunca vai para o cliente |
+| Login sem revelar e-mails | `app/api/auth/login` | Mesmo tempo de resposta para e-mail inexistente |
+
+Observações:
+- O limite de login fica no banco para valer entre instâncias do servidor.
+  Aplique `supabase/migrations/20260928000000_login_attempts.sql`; sem a
+  tabela o login funciona, mas **sem limite** (e loga um erro).
+- O limite geral é por instância (memória). Para ataques de volume (DDoS),
+  use o firewall da hospedagem — ex.: Vercel Firewall, ou Cloudflare na frente.
+- O IP vem de `request.ip` / `x-forwarded-for`. Na Vercel isso é confiável;
+  em outro host, confirme que um proxy define esse cabeçalho.
+- Para bloquear um IP: adicione em `BLOCKED_IPS` e faça redeploy. Tentativas
+  recentes ficam na tabela `login_attempts`:
+  ```sql
+  SELECT ip, count(*) AS falhas, max(created_at) AS ultima
+  FROM login_attempts WHERE NOT success
+  GROUP BY ip ORDER BY falhas DESC LIMIT 20;
+  ```

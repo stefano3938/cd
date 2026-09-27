@@ -1,27 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/server'
 import { canAccessTurma, forbidden, requireUser } from '@/lib/auth/guard'
+import { handleError, parseData } from '@/lib/http/errors'
+import { idParams } from '@/lib/validation/schemas'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireUser(['admin', 'professor', 'monitor'])
   if (auth instanceof NextResponse) return auth
 
-  const { id: turma_id } = await params
+  try {
+    const { id: turma_id } = parseData(params, idParams)
 
-  if (!(await canAccessTurma(auth, turma_id))) return forbidden()
+    if (!(await canAccessTurma(auth, turma_id))) return forbidden()
 
-  const { data, error } = await supabase
-    .from('students')
-    .select('id, nome, email, telefone')
-    .eq('turma_id', turma_id)
-    .order('nome')
+    const { data, error } = await supabase
+      .from('students')
+      .select('id, nome, email, telefone')
+      .eq('turma_id', turma_id)
+      .order('nome')
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) throw error
+    return NextResponse.json(data || [])
+  } catch (error) {
+    return handleError(error, 'listar alunos da turma')
   }
-
-  return NextResponse.json(data || [])
 }

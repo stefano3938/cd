@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Session } from '@/lib/auth/session'
 import { supabase } from '@/lib/supabase/server'
 import { canAccessTurma, forbidden, requireUser } from '@/lib/auth/guard'
+import { handleError, parseData } from '@/lib/http/errors'
+import { idParams } from '@/lib/validation/schemas'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   const auth = await requireUser(['admin', 'professor', 'monitor'])
   if (auth instanceof NextResponse) return auth
 
-  const { id: turma_id } = await params
+  try {
+    return await loadClasses(auth, parseData(params, idParams).id)
+  } catch (error) {
+    return handleError(error, 'listar aulas da turma')
+  }
+}
 
+async function loadClasses(auth: Session, turma_id: string) {
   if (!(await canAccessTurma(auth, turma_id))) return forbidden()
 
   // Buscar a turma com o curso
@@ -42,9 +51,7 @@ export async function GET(
     .eq('course_id', turma.course_id)
     .order('ordem')
 
-  if (modulesError) {
-    return NextResponse.json({ error: modulesError.message }, { status: 500 })
-  }
+  if (modulesError) throw modulesError
 
   // Organizar dados
   const result = {

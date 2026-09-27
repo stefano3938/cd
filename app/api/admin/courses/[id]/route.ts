@@ -1,59 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/guard'
+import { handleError, parseBody, parseData } from '@/lib/http/errors'
+import { idParams, updateCourseSchema } from '@/lib/validation/schemas'
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireUser(['admin'])
   if (auth instanceof NextResponse) return auth
 
-  const { id } = await params
+  try {
+    const { id } = parseData(params, idParams)
+    const { data, error } = await supabase
+      .from('courses')
+      .select('*, modules(id, nome, ordem, numero_de_aulas)')
+      .eq('id', id)
+      .single()
 
-  const { data, error } = await supabase
-    .from('courses')
-    .select('*, modules(id, nome, ordem, numero_de_aulas)')
-    .eq('id', id)
-    .single()
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) throw error
+    return NextResponse.json(data)
+  } catch (error) {
+    return handleError(error, 'buscar curso')
   }
-  return NextResponse.json(data)
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireUser(['admin'])
   if (auth instanceof NextResponse) return auth
 
-  const { id } = await params
-  const body = await request.json()
-  const { nome, ano, descricao } = body
+  try {
+    const { id } = parseData(params, idParams)
+    const input = await parseBody(request, updateCourseSchema)
 
-  const { data, error } = await supabase
-    .from('courses')
-    .update({ nome, ano, descricao })
-    .eq('id', id)
-    .select()
-    .single()
+    const { data, error } = await supabase
+      .from('courses')
+      .update(input)
+      .eq('id', id)
+      .select()
+      .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) throw error
+    return NextResponse.json(data)
+  } catch (error) {
+    return handleError(error, 'atualizar curso')
   }
-  return NextResponse.json(data)
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireUser(['admin'])
   if (auth instanceof NextResponse) return auth
 
-  const { id } = await params
+  try {
+    const { id } = parseData(params, idParams)
+    const { error } = await supabase
+      .from('courses')
+      .delete()
+      .eq('id', id)
 
-  const { error } = await supabase
-    .from('courses')
-    .delete()
-    .eq('id', id)
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) throw error
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return handleError(error, 'excluir curso')
   }
-  return NextResponse.json({ success: true })
 }

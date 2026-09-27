@@ -1,55 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/guard'
-
-interface StudentData {
-  nome: string
-  email?: string
-  telefone?: string
-}
+import { handleError, HttpError, parseBody } from '@/lib/http/errors'
+import { importStudentsSchema } from '@/lib/validation/schemas'
 
 export async function POST(request: NextRequest) {
   const auth = await requireUser(['admin'])
   if (auth instanceof NextResponse) return auth
 
-  const body = await request.json()
-  const { students, turma_id } = body as { students: StudentData[]; turma_id: string }
+  try {
+    const { students, turma_id } = await parseBody(request, importStudentsSchema)
 
-  if (!students || !Array.isArray(students) || students.length === 0) {
-    return NextResponse.json({ error: 'Lista de alunos vazia' }, { status: 400 })
+    // Ignora linhas sem nome
+    const records = students
+      .filter(s => s.nome.length > 0)
+      .map(s => ({
+        nome: s.nome,
+        email: s.email || null,
+        telefone: s.telefone || null,
+        turma_id
+      }))
+
+    if (records.length === 0) {
+      throw new HttpError(400, 'Nenhum aluno válido na lista')
+    }
+
+    const { data, error } = await supabase
+      .from('students')
+      .insert(records)
+      .select('id')
+
+    if (error) throw error
+
+    return NextResponse.json({
+      success: true,
+      imported: data?.length || 0,
+      total: students.length
+    })
+  } catch (error) {
+    return handleError(error, 'importar alunos')
   }
-
-  if (!turma_id) {
-    return NextResponse.json({ error: 'turma_id obrigatório' }, { status: 400 })
-  }
-
-  // Validar dados
-  const validStudents = students.filter(s => s.nome && s.nome.trim().length > 0)
-
-  if (validStudents.length === 0) {
-    return NextResponse.json({ error: 'Nenhum aluno válido na lista' }, { status: 400 })
-  }
-
-  // Preparar dados para inserção
-  const records = validStudents.map(s => ({
-    nome: s.nome.trim(),
-    email: s.email?.trim() || null,
-    telefone: s.telefone?.trim() || null,
-    turma_id
-  }))
-
-  const { data, error } = await supabase
-    .from('students')
-    .insert(records)
-    .select()
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({
-    success: true,
-    imported: data?.length || 0,
-    total: students.length
-  })
 }
