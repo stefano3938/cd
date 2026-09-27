@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/server'
+import { verifyPassword } from '@/lib/auth/password'
+import { SESSION_COOKIE, sessionCookieOptions, signSession } from '@/lib/auth/session'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,38 +17,30 @@ export async function POST(request: NextRequest) {
     // Buscar usuário no banco
     const { data: user, error } = await supabase
       .from('users')
-      .select('*')
-      .eq('email', email)
-      .single()
+      .select('id, email, nome, role, password_hash')
+      .eq('email', String(email).trim())
+      .maybeSingle()
 
-    console.log('Supabase query result:', { user, error })
-
-    if (error || !user) {
-      console.log('User not found or error:', error)
-      return NextResponse.json(
-        { error: 'Credenciais inválidas', debug: error?.message },
-        { status: 401 }
-      )
-    }
+    if (error) throw error
 
     // Verificar senha
-    const passwordMatch = await bcrypt.compare(password, user.password_hash)
+    const passwordMatch = user ? await verifyPassword(password, user.password_hash) : false
 
-    if (!passwordMatch) {
+    if (!user || !passwordMatch) {
       return NextResponse.json(
         { error: 'Credenciais inválidas' },
         { status: 401 }
       )
     }
 
-    // Remover senha do retorno
-    const { password_hash, ...userWithoutPassword } = user
+    const token = await signSession({ userId: user.id, role: user.role, nome: user.nome })
 
-    // Retornar usuário e role
-    return NextResponse.json({
-      user: userWithoutPassword,
+    const response = NextResponse.json({
+      user: { id: user.id, email: user.email, nome: user.nome, role: user.role },
       message: 'Login realizado com sucesso'
     })
+    response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions)
+    return response
 
   } catch (error) {
     console.error('Erro no login:', error)

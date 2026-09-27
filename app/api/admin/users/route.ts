@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/guard'
+import { hashPassword, MIN_PASSWORD_LENGTH } from '@/lib/auth/password'
+import { USER_COLUMNS } from '@/lib/supabase/columns'
 
 export async function GET() {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select(USER_COLUMNS)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -18,6 +24,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   try {
     const body = await request.json()
     const { nome, email, password, role, data_nascimento, nome_lider_direto, geracao, telefone_lider_direto } = body
@@ -26,14 +35,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Campos obrigatórios não preenchidos' }, { status: 400 })
     }
 
-    // Hash simples para demo - em produção usar bcrypt
-    const password_hash = Buffer.from(password).toString('base64')
+    if (!['admin', 'professor', 'monitor'].includes(role)) {
+      return NextResponse.json({ error: 'Perfil inválido' }, { status: 400 })
+    }
+
+    if (String(password).length < MIN_PASSWORD_LENGTH) {
+      return NextResponse.json({ error: `A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres` }, { status: 400 })
+    }
+
+    const password_hash = await hashPassword(password)
 
     const { data, error } = await supabase
       .from('users')
       .insert([{
         nome,
-        email,
+        email: String(email).trim(),
         password_hash,
         role,
         data_nascimento: data_nascimento || null,
@@ -41,17 +57,17 @@ export async function POST(request: Request) {
         geracao: geracao || null,
         telefone_lider_direto: telefone_lider_direto || null
       }])
-      .select()
+      .select(USER_COLUMNS)
       .single()
 
     if (error) {
       if (error.code === '23505') {
-        return NextResponse.json({ error: 'E-mail já cadastrado' }, { status: 400 })
+        return NextResponse.json({ error: 'E-mail já cadastrado' }, { status: 409 })
       }
       throw error
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(data, { status: 201 })
   } catch (error) {
     console.error('Error creating user:', error)
     return NextResponse.json({ error: 'Erro ao criar usuário' }, { status: 500 })

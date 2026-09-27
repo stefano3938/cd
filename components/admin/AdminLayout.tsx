@@ -8,7 +8,6 @@ import styles from '@/assets/css/admin.module.css'
 interface User {
   id: string
   nome: string
-  email: string
   role: string
 }
 
@@ -18,22 +17,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (!userData) {
-      router.push('/login')
-      return
-    }
-    const parsed = JSON.parse(userData)
-    if (parsed.role !== 'admin') {
-      router.push('/professor/chamada')
-      return
-    }
-    setUser(parsed)
+    // O middleware já bloqueia quem não é admin; aqui só buscamos os dados para exibir
+    fetch('/api/auth/me')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!data) {
+          router.replace('/login')
+          return
+        }
+        if (data.role !== 'admin') {
+          router.replace('/professor/chamada')
+          return
+        }
+        setUser(data)
+      })
+      .catch(() => router.replace('/login'))
   }, [router])
 
-  const handleLogout = () => {
-    localStorage.removeItem('user')
-    router.push('/login')
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.replace('/login')
   }
 
   const navItems = [

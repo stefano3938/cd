@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/guard'
 
 interface StudentData {
   nome: string
@@ -8,6 +9,9 @@ interface StudentData {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   const body = await request.json()
   const { students, turma_id } = body as { students: StudentData[]; turma_id: string }
 

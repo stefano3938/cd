@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/guard'
 
 export async function GET(request: NextRequest) {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   const class_id = request.nextUrl.searchParams.get('class_id')
   const student_id = request.nextUrl.searchParams.get('student_id')
 
@@ -27,8 +31,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   const body = await request.json()
-  const { class_id, attendance, marked_by } = body
+  const { class_id, attendance } = body
 
   if (!class_id || !attendance || !Array.isArray(attendance)) {
     return NextResponse.json({ error: 'Campos obrigatórios: class_id, attendance' }, { status: 400 })
@@ -46,7 +53,7 @@ export async function POST(request: NextRequest) {
       student_id: a.student_id,
       class_id,
       status: a.status,
-      marked_by: marked_by || null
+      marked_by: auth.userId
     }))
 
     const { data, error } = await supabase

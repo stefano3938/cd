@@ -238,6 +238,11 @@ Situação das rotas existentes e o que fazer com cada uma.
 
 ## 8. Plano de migração (ordem sugerida)
 
+> Status: passos 1 a 5 concluídos (sessão em cookie, `middleware.ts`,
+> `requireUser` em todas as rotas, `marked_by`/`created_by` vindos da sessão,
+> professor restrito às próprias turmas). Senhas de `/api/admin/users` já usam
+> bcrypt. Pendentes: redefinir senhas antigas em Base64, passos 7–9.
+
 1. **Remover** `/api/create-admin` e `/api/test-db`.
 2. Criar `lib/supabase/server.ts`, `.env.example` e trocar os imports de
    `lib/supabase/client.ts` nas rotas.

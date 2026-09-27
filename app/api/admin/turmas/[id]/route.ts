@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/guard'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   const { id } = await params
   const body = await request.json()
   const { nome, horario_inicio, horario_fim, dia_semana, professor_ids } = body
@@ -32,6 +36,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   const { id } = await params
 
   const { error } = await supabase

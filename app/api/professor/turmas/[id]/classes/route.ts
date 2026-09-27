@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/server'
+import { canAccessTurma, forbidden, requireUser } from '@/lib/auth/guard'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireUser(['admin', 'professor', 'monitor'])
+  if (auth instanceof NextResponse) return auth
+
   const { id: turma_id } = await params
+
+  if (!(await canAccessTurma(auth, turma_id))) return forbidden()
 
   // Buscar a turma com o curso
   const { data: turma, error: turmaError } = await supabase

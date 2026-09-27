@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/guard'
 
 export async function GET(request: NextRequest) {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   const module_id = request.nextUrl.searchParams.get('module_id')
 
   if (!module_id) {
@@ -21,6 +25,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   const body = await request.json()
   const { module_id, titulo, ordem, data_aula } = body
 

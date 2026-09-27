@@ -7,7 +7,6 @@ import styles from '@/assets/css/professor.module.css'
 interface User {
   id: string
   nome: string
-  email: string
   role: string
 }
 
@@ -62,26 +61,27 @@ export default function ProfessorChamada() {
   const [students, setStudents] = useState<Student[]>([])
 
   useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (!userData) {
-      router.push('/login')
-      return
-    }
-
-    const parsedUser = JSON.parse(userData)
-    if (parsedUser.role !== 'professor') {
-      router.push('/admin/dashboard')
-      return
-    }
-
-    setUser(parsedUser)
-    loadTurmas(parsedUser.id)
+    fetch('/api/auth/me')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!data) {
+          router.replace('/login')
+          return
+        }
+        if (data.role === 'admin') {
+          router.replace('/admin/dashboard')
+          return
+        }
+        setUser(data)
+        loadTurmas()
+      })
+      .catch(() => router.replace('/login'))
   }, [router])
 
-  async function loadTurmas(professorId: string) {
+  async function loadTurmas() {
     setLoading(true)
     try {
-      const res = await fetch(`/api/professor/turmas?professor_id=${professorId}`)
+      const res = await fetch('/api/professor/turmas')
       const data = await res.json()
       setTurmas(data)
     } catch (e) {
@@ -144,7 +144,6 @@ export default function ProfessorChamada() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           class_id: selectedClass.id,
-          marked_by: user.id,
           attendance: students.map(s => ({
             student_id: s.id,
             status: s.status
@@ -178,9 +177,9 @@ export default function ProfessorChamada() {
     }
   }
 
-  function logout() {
-    localStorage.removeItem('user')
-    router.push('/login')
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.replace('/login')
   }
 
   const presentes = students.filter(s => s.status === 'presente').length

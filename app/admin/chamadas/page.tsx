@@ -125,16 +125,12 @@ export default function CadernetaChamadas() {
     setSuccess('')
 
     try {
-      const userData = localStorage.getItem('user')
-      const user = userData ? JSON.parse(userData) : null
-
       const res = await fetch('/api/admin/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           class_id: selectedClass,
-          attendance: attendance,
-          marked_by: user?.id
+          attendance: attendance
         })
       })
 

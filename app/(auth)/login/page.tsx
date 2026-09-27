@@ -38,14 +38,12 @@ export default function LoginPage() {
         throw new Error(data.error || 'Erro ao fazer login')
       }
 
-      // Salvar usuário no localStorage
-      localStorage.setItem('user', JSON.stringify(data.user))
-
+      // A sessão fica em um cookie httpOnly criado pela API
       // Redirecionar baseado no role
       if (data.user.role === 'admin') {
-        router.push('/admin/dashboard')
+        router.replace('/admin/dashboard')
       } else {
-        router.push('/professor/chamada')
+        router.replace('/professor/chamada')
       }
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.')

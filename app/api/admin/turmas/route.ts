@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/guard'
 
 export async function GET() {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   const { data, error } = await supabase
     .from('turmas')
     .select(`
@@ -18,6 +22,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   const body = await request.json()
   const { course_id, nome, horario_inicio, horario_fim, dia_semana, professor_ids } = body
 

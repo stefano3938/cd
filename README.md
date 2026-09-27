@@ -69,12 +69,13 @@ npm install
 ### 2. Configurar Supabase
 
 1. Crie um projeto no [Supabase](https://supabase.com)
-2. Copie `.env.local.example` para `.env.local`
-3. Preencha as variáveis de ambiente:
+2. Copie `.env.example` para `.env.local`
+3. Preencha as variáveis de ambiente (as mesmas devem ser configuradas na hospedagem):
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_anon_key
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key   # secreta, só no servidor
+SESSION_SECRET=string_aleatoria_com_32+_caracteres
 ```
 
 ### 3. Criar tabelas no banco

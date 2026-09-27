@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/guard'
 
 export async function GET(request: NextRequest) {
-  const professor_id = request.nextUrl.searchParams.get('professor_id')
+  const auth = await requireUser(['admin', 'professor', 'monitor'])
+  if (auth instanceof NextResponse) return auth
 
-  if (!professor_id) {
-    return NextResponse.json({ error: 'professor_id obrigatório' }, { status: 400 })
-  }
+  // Professor/monitor só vê as próprias turmas; admin pode consultar outro professor
+  const professor_id = auth.role === 'admin'
+    ? request.nextUrl.searchParams.get('professor_id') ?? auth.userId
+    : auth.userId
 
   const { data, error } = await supabase
     .from('turma_professors')

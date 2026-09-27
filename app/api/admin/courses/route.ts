@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/guard'
 
 export async function GET() {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   const { data, error } = await supabase
     .from('courses')
     .select('*, modules(id, nome, ordem, numero_de_aulas)')
@@ -14,8 +18,11 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireUser(['admin'])
+  if (auth instanceof NextResponse) return auth
+
   const body = await request.json()
-  const { nome, ano, descricao, created_by } = body
+  const { nome, ano, descricao } = body
 
   if (!nome || !ano) {
     return NextResponse.json({ error: 'Campos obrigatórios: nome, ano' }, { status: 400 })
@@ -23,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase
     .from('courses')
-    .insert({ nome, ano, descricao, created_by })
+    .insert({ nome, ano, descricao, created_by: auth.userId })
     .select()
     .single()
 
