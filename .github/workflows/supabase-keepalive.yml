@@ -1,0 +1,30 @@
+# Mantém o projeto Supabase (plano gratuito) ativo.
+# O Supabase pausa projetos gratuitos após ~7 dias sem atividade;
+# esta tarefa faz uma consulta leve a cada 3 dias.
+#
+# Secrets necessários (Settings > Secrets and variables > Actions):
+#   SUPABASE_URL       ex.: https://odvsifwmbijviuprbrne.supabase.co
+#   SUPABASE_ANON_KEY  anon key do projeto
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: '17 12 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta leve no banco
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          status=$(curl -sS -o response.txt -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/courses?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "HTTP $status"
+          cat response.txt
+          test "$status" -lt 500
