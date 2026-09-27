@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
+import { requireRole } from '@/lib/auth/guard'
+import { serverError } from '@/lib/api/errors'
+import { parseAttendance } from '@/lib/api/attendance'
+import { audit } from '@/lib/security/audit'
 
 export async function GET(request: NextRequest) {
+  const session = await requireRole('admin')
+  if (session instanceof NextResponse) return session
+
   const class_id = request.nextUrl.searchParams.get('class_id')
   const student_id = request.nextUrl.searchParams.get('student_id')
 
@@ -20,45 +27,42 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await query
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  if (error) return serverError('attendance.list', error)
   return NextResponse.json(data)
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
-  const { class_id, attendance, marked_by } = body
+  const session = await requireRole('admin')
+  if (session instanceof NextResponse) return session
 
-  if (!class_id || !attendance || !Array.isArray(attendance)) {
+  const body = await request.json()
+  const { class_id } = body
+  const attendance = parseAttendance(body.attendance)
+
+  if (!class_id || !attendance) {
     return NextResponse.json({ error: 'Campos obrigatórios: class_id, attendance' }, { status: 400 })
   }
 
-  try {
-    // Remove registros existentes para esta aula
-    await supabase
-      .from('attendance')
-      .delete()
-      .eq('class_id', class_id)
+  // Upsert em vez de apagar e reinserir: se algo falhar, as presenças já gravadas não se perdem
+  const records = attendance.map(a => ({
+    student_id: a.student_id,
+    class_id,
+    status: a.status,
+    marked_by: session.sub,
+    marked_at: new Date().toISOString()
+  }))
 
-    // Insere novos registros
-    const records = attendance.map((a: { student_id: string; status: string }) => ({
-      student_id: a.student_id,
-      class_id,
-      status: a.status,
-      marked_by: marked_by || null
-    }))
+  const { data, error } = await supabase
+    .from('attendance')
+    .upsert(records, { onConflict: 'student_id,class_id' })
+    .select()
 
-    const { data, error } = await supabase
-      .from('attendance')
-      .insert(records)
-      .select()
-
-    if (error) throw error
-
-    return NextResponse.json(data, { status: 201 })
-  } catch (error) {
-    console.error('Error saving attendance:', error)
-    return NextResponse.json({ error: 'Erro ao salvar chamada' }, { status: 500 })
-  }
+  if (error) return serverError('attendance.save', error)
+  await audit(request, session, {
+    action: 'update',
+    entity: 'attendance',
+    entityId: class_id,
+    details: { registros: records.length }
+  })
+  return NextResponse.json(data, { status: 201 })
 }

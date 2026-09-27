@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import styles from '@/assets/css/admin.module.css'
+import ChangePasswordModal from '@/components/ChangePasswordModal'
 
 interface User {
   id: string
@@ -16,22 +17,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
   const pathname = usePathname()
   const [user, setUser] = useState<User | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
+  // A fonte da verdade é a sessão no servidor; localStorage serve só para exibir o nome
   useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (!userData) {
-      router.push('/login')
-      return
+    async function checkSession() {
+      const res = await fetch('/api/auth/session').catch(() => null)
+      if (!res || !res.ok) {
+        localStorage.removeItem('user')
+        router.push('/login')
+        return
+      }
+      const session = await res.json()
+      if (session.role !== 'admin') {
+        router.push('/professor/chamada')
+        return
+      }
+      const stored = JSON.parse(localStorage.getItem('user') || '{}')
+      setUser({ ...stored, id: session.id, nome: session.nome, role: session.role })
     }
-    const parsed = JSON.parse(userData)
-    if (parsed.role !== 'admin') {
-      router.push('/professor/chamada')
-      return
-    }
-    setUser(parsed)
+    checkSession()
   }, [router])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
     localStorage.removeItem('user')
     router.push('/login')
   }
@@ -44,6 +53,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/frequencia', label: 'Controle de Frequência' },
     { href: '/admin/consulta-cadastros', label: 'Consulta de Cadastros' },
     { href: '/admin/consulta-turmas', label: 'Consulta de Turmas' },
+    { href: '/admin/lgpd', label: 'LGPD e Segurança' },
   ]
 
   if (!user) return null
@@ -71,6 +81,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </h1>
           <div className={styles.userInfo}>
             <span className={styles.userName}>{user.nome}</span>
+            <button onClick={() => setShowPassword(true)} className={styles.logoutBtn}>
+              Alterar senha
+            </button>
             <button onClick={handleLogout} className={styles.logoutBtn}>
               Sair
             </button>
@@ -80,6 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {children}
         </div>
       </main>
+      {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}
     </div>
   )
 }

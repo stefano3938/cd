@@ -326,3 +326,91 @@
   border-radius: var(--radius-md);
   margin-bottom: var(--spacing-md);
 }
+
+/* LGPD / Segurança */
+.consentBox {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.consentText {
+  font-size: var(--font-sm);
+  color: var(--gray-600);
+}
+
+.consentText a {
+  color: var(--primary-blue);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-sm);
+  color: var(--gray-700);
+  cursor: pointer;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: 600;
+}
+
+.badgeOk {
+  background: var(--success-light);
+  color: #047857;
+}
+
+.badgeWarning {
+  background: var(--warning-light);
+  color: #b45309;
+}
+
+.badgeMuted {
+  background: var(--gray-200);
+  color: var(--gray-600);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  border-bottom: 1px solid var(--gray-200);
+  margin-bottom: var(--spacing-md);
+}
+
+.tab {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  color: var(--gray-600);
+  font-size: var(--font-sm);
+}
+
+.tabActive {
+  color: var(--primary-blue);
+  border-bottom-color: var(--primary-blue);
+  font-weight: 600;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+}
+
+.warningBox {
+  background: var(--warning-light);
+  color: #92400e;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  margin-bottom: var(--spacing-md);
+}

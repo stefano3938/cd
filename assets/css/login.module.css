@@ -99,6 +99,16 @@
   text-align: center;
 }
 
+.privacyLink {
+  margin-top: var(--spacing-lg);
+  text-align: center;
+  font-size: var(--font-sm);
+}
+
+.privacyLink a {
+  color: var(--gray-500);
+}
+
 /* Responsividade Mobile */
 @media (max-width: 640px) {
   .loginBox {

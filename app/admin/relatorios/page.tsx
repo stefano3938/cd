@@ -100,9 +100,15 @@ export default function RelatoriosPage() {
   function exportCSV() {
     if (students.length === 0) return
 
+    // Evita CSV injection: células iniciadas por = + - @ viram fórmulas no Excel
+    const safeCell = (value: string) => {
+      const escaped = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+      return /[;"\n]/.test(escaped) ? `"${escaped.replace(/"/g, '""')}"` : escaped
+    }
+
     const headers = ['Nome', 'Presenças', 'Faltas', 'Total Aulas', '% Presença']
     const rows = students.map(s => [
-      s.nome,
+      safeCell(s.nome),
       s.presencas,
       s.faltas,
       s.total,

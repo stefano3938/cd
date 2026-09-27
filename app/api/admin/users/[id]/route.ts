@@ -1,67 +1,113 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
+import { requireRole, revokeSessions } from '@/lib/auth/guard'
+import { audit } from '@/lib/security/audit'
+import { hashPassword, validatePassword } from '@/lib/auth/password'
+import { isUniqueViolation, serverError } from '@/lib/api/errors'
+import { USER_PUBLIC_COLUMNS, VALID_ROLES } from '@/lib/auth/users'
+
+// Somente estes campos podem ser alterados via API (evita mass assignment de password_hash, id etc.)
+const EDITABLE_FIELDS = [
+  'nome', 'email', 'telefone', 'role', 'data_nascimento',
+  'nome_lider_direto', 'geracao', 'telefone_lider_direto'
+] as const
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', id)
-      .single()
+  const session = await requireRole('admin')
+  if (session instanceof NextResponse) return session
 
-    if (error) throw error
+  const { id } = await params
+  const { data, error } = await supabase
+    .from('users')
+    .select(USER_PUBLIC_COLUMNS)
+    .eq('id', id)
+    .maybeSingle()
 
-    return NextResponse.json(data)
-  } catch (error) {
-    console.error('Error fetching user:', error)
-    return NextResponse.json({ error: 'Erro ao buscar usuário' }, { status: 500 })
-  }
+  if (error) return serverError('users.get', error)
+  if (!data) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
+  return NextResponse.json(data)
 }
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await requireRole('admin')
+  if (session instanceof NextResponse) return session
+
   try {
     const { id } = await params
     const body = await request.json()
 
+    const updateData: Record<string, unknown> = {}
+    for (const field of EDITABLE_FIELDS) {
+      if (body[field] !== undefined) updateData[field] = body[field] === '' ? null : body[field]
+    }
+
+    if (updateData.role !== undefined && !VALID_ROLES.includes(updateData.role as string)) {
+      return NextResponse.json({ error: 'Perfil inválido' }, { status: 400 })
+    }
+    if (id === session.sub && updateData.role !== undefined && updateData.role !== 'admin') {
+      return NextResponse.json({ error: 'Você não pode remover seu próprio perfil de administrador' }, { status: 400 })
+    }
+
+    if (body.password) {
+      const passwordError = validatePassword(body.password)
+      if (passwordError) return NextResponse.json({ error: passwordError }, { status: 400 })
+      updateData.password_hash = await hashPassword(body.password)
+    }
+
     const { data, error } = await supabase
       .from('users')
-      .update(body)
+      .update(updateData)
       .eq('id', id)
-      .select()
+      .select(USER_PUBLIC_COLUMNS)
       .single()
 
-    if (error) throw error
+    if (error) {
+      if (isUniqueViolation(error)) {
+        return NextResponse.json({ error: 'E-mail já cadastrado' }, { status: 400 })
+      }
+      return serverError('users.update', error)
+    }
+
+    if (updateData.password_hash || updateData.role !== undefined) {
+      await revokeSessions(id)
+    }
+    await audit(request, session, {
+      action: 'update',
+      entity: 'user',
+      entityId: id,
+      details: { campos: Object.keys(updateData).map(f => (f === 'password_hash' ? 'senha' : f)) }
+    })
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error updating user:', error)
-    return NextResponse.json({ error: 'Erro ao atualizar usuário' }, { status: 500 })
+    return serverError('users.update', error)
   }
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params
-    const { error } = await supabase
-      .from('users')
-      .delete()
-      .eq('id', id)
+  const session = await requireRole('admin')
+  if (session instanceof NextResponse) return session
 
-    if (error) throw error
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Error deleting user:', error)
-    return NextResponse.json({ error: 'Erro ao excluir usuário' }, { status: 500 })
+  const { id } = await params
+  if (id === session.sub) {
+    return NextResponse.json({ error: 'Você não pode excluir o próprio usuário' }, { status: 400 })
   }
+
+  const { error } = await supabase
+    .from('users')
+    .delete()
+    .eq('id', id)
+
+  if (error) return serverError('users.delete', error)
+  await audit(request, session, { action: 'delete', entity: 'user', entityId: id })
+  return NextResponse.json({ success: true })
 }

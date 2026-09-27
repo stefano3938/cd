@@ -1,26 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
+import { requireRole } from '@/lib/auth/guard'
+import { serverError } from '@/lib/api/errors'
 
 export async function GET(request: NextRequest) {
+  const session = await requireRole('admin')
+  if (session instanceof NextResponse) return session
+
   const module_id = request.nextUrl.searchParams.get('module_id')
 
-  if (!module_id) {
-    return NextResponse.json({ error: 'module_id obrigatório' }, { status: 400 })
-  }
-
-  const { data, error } = await supabase
+  // Sem module_id retorna todas as aulas (usado pela Caderneta de Chamadas)
+  let query = supabase
     .from('classes')
     .select('*')
-    .eq('module_id', module_id)
     .order('ordem')
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (module_id) {
+    query = query.eq('module_id', module_id)
   }
+
+  const { data, error } = await query
+
+  if (error) return serverError('classes.list', error)
   return NextResponse.json(data)
 }
 
 export async function POST(request: NextRequest) {
+  const session = await requireRole('admin')
+  if (session instanceof NextResponse) return session
+
   const body = await request.json()
   const { module_id, titulo, ordem, data_aula } = body
 
@@ -34,8 +42,6 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  if (error) return serverError('classes.create', error)
   return NextResponse.json(data, { status: 201 })
 }

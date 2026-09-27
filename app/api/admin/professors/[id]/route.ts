@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import { supabase } from '@/lib/supabase/client'
+import { requireRole, revokeSessions } from '@/lib/auth/guard'
+import { audit } from '@/lib/security/audit'
+import { hashPassword, validatePassword } from '@/lib/auth/password'
+import { isUniqueViolation, serverError } from '@/lib/api/errors'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await requireRole('admin')
+  if (session instanceof NextResponse) return session
+
   const { id } = await params
   const body = await request.json()
   const { email, nome, telefone, senha } = body
 
-  const updateData: any = { email, nome, telefone }
+  const updateData: Record<string, unknown> = { email, nome, telefone }
   if (senha) {
-    updateData.password_hash = await bcrypt.hash(senha, 10)
+    const passwordError = validatePassword(senha)
+    if (passwordError) {
+      return NextResponse.json({ error: passwordError }, { status: 400 })
+    }
+    updateData.password_hash = await hashPassword(senha)
   }
 
   const { data, error } = await supabase
@@ -21,12 +31,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    if (isUniqueViolation(error)) {
+      return NextResponse.json({ error: 'E-mail já cadastrado' }, { status: 400 })
+    }
+    return serverError('professors.update', error)
   }
+
+  if (updateData.password_hash) await revokeSessions(id)
+  await audit(request, session, {
+    action: 'update',
+    entity: 'user',
+    entityId: id,
+    details: { campos: Object.keys(updateData).map(f => (f === 'password_hash' ? 'senha' : f)) }
+  })
   return NextResponse.json(data)
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await requireRole('admin')
+  if (session instanceof NextResponse) return session
+
   const { id } = await params
 
   const { error } = await supabase
@@ -35,8 +59,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     .eq('id', id)
     .eq('role', 'professor')
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  if (error) return serverError('professors.delete', error)
+  await audit(request, session, { action: 'delete', entity: 'user', entityId: id })
   return NextResponse.json({ success: true })
 }

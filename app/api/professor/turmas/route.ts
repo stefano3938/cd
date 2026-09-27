@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
+import { requireRole } from '@/lib/auth/guard'
+import { serverError } from '@/lib/api/errors'
 
-export async function GET(request: NextRequest) {
-  const professor_id = request.nextUrl.searchParams.get('professor_id')
-
-  if (!professor_id) {
-    return NextResponse.json({ error: 'professor_id obrigatório' }, { status: 400 })
-  }
+// Turmas do professor logado (o ID vem da sessão, não da query string)
+export async function GET() {
+  const session = await requireRole('professor')
+  if (session instanceof NextResponse) return session
 
   const { data, error } = await supabase
     .from('turma_professors')
@@ -26,11 +26,9 @@ export async function GET(request: NextRequest) {
         )
       )
     `)
-    .eq('professor_id', professor_id)
+    .eq('professor_id', session.sub)
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  if (error) return serverError('professor.turmas', error)
 
   const turmas = data?.map(tp => tp.turmas).filter(Boolean) || []
   return NextResponse.json(turmas)

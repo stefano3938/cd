@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import AdminLayout from '@/components/admin/AdminLayout'
 import styles from '@/assets/css/admin.module.css'
 import { Student, Turma } from '@/lib/supabase/types'
+import { calcularIdade, isMenor } from '@/lib/lgpd/config'
 
 interface FormData {
   nome: string
@@ -15,6 +17,8 @@ interface FormData {
   geracao: string
   telefone_lider_direto: string
   turma_id: string
+  consentimento_titular: '' | 'aluno' | 'responsavel'
+  consentimento_confirmado: boolean
 }
 
 const initialFormData: FormData = {
@@ -26,7 +30,9 @@ const initialFormData: FormData = {
   nome_lider_direto: '',
   geracao: '',
   telefone_lider_direto: '',
-  turma_id: ''
+  turma_id: '',
+  consentimento_titular: '',
+  consentimento_confirmado: false
 }
 
 export default function Matriculas() {
@@ -68,25 +74,27 @@ export default function Matriculas() {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData(prev => {
+      const next = { ...prev, [name]: value } as FormData
+      // Menor de idade: consentimento obrigatoriamente do responsável (LGPD art. 14)
+      if (name === 'data_nascimento' && isMenor(value)) next.consentimento_titular = 'responsavel'
+      return next
+    })
   }
 
-  function calcularIdade(dataNascimento: string): number {
-    const hoje = new Date()
-    const nascimento = new Date(dataNascimento)
-    let idade = hoje.getFullYear() - nascimento.getFullYear()
-    const mes = hoje.getMonth() - nascimento.getMonth()
-    if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
-      idade--
-    }
-    return idade
-  }
+  const menor = isMenor(formData.data_nascimento)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSaving(true)
     setError('')
     setSuccess('')
+
+    if (!formData.consentimento_confirmado || !formData.consentimento_titular) {
+      setError('Registre o consentimento para concluir a matrícula')
+      return
+    }
+
+    setSaving(true)
 
     try {
       const res = await fetch('/api/admin/students', {
@@ -324,6 +332,40 @@ export default function Matriculas() {
                   ))}
                 </select>
               </div>
+
+              <fieldset className={styles.consentBox}>
+                <legend className={styles.label}>Consentimento (LGPD) *</legend>
+                <p className={styles.consentText}>
+                  O titular (ou o responsável, se menor de 18 anos) leu o{' '}
+                  <Link href="/privacidade" target="_blank" rel="noopener noreferrer">Aviso de Privacidade</Link>{' '}
+                  e autorizou o uso dos dados para o curso.
+                </p>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Quem autorizou</label>
+                  <select
+                    name="consentimento_titular"
+                    value={formData.consentimento_titular}
+                    onChange={handleChange}
+                    className={styles.select}
+                    required
+                  >
+                    <option value="">Selecione</option>
+                    <option value="aluno" disabled={menor}>O próprio aluno (maior de idade)</option>
+                    <option value="responsavel">O responsável</option>
+                  </select>
+                  {menor && <small className={styles.consentText}>Aluno menor de idade: exige autorização do responsável.</small>}
+                </div>
+
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={formData.consentimento_confirmado}
+                    onChange={e => setFormData(prev => ({ ...prev, consentimento_confirmado: e.target.checked }))}
+                  />
+                  Confirmo que o consentimento foi obtido
+                </label>
+              </fieldset>
 
               <div className={styles.modalFooter}>
                 <button

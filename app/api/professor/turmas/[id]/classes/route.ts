@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
+import { canAccessTurma, forbidden, requireRole } from '@/lib/auth/guard'
+import { serverError } from '@/lib/api/errors'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await requireRole('professor', 'admin')
+  if (session instanceof NextResponse) return session
+
   const { id: turma_id } = await params
+  if (!(await canAccessTurma(session, turma_id))) return forbidden()
 
   // Buscar a turma com o curso
   const { data: turma, error: turmaError } = await supabase
@@ -36,9 +42,7 @@ export async function GET(
     .eq('course_id', turma.course_id)
     .order('ordem')
 
-  if (modulesError) {
-    return NextResponse.json({ error: modulesError.message }, { status: 500 })
-  }
+  if (modulesError) return serverError('professor.turma.classes', modulesError)
 
   // Organizar dados
   const result = {

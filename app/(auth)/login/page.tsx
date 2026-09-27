@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import styles from '@/assets/css/login.module.css'
 
 export default function LoginPage() {
@@ -38,7 +39,12 @@ export default function LoginPage() {
         throw new Error(data.error || 'Erro ao fazer login')
       }
 
-      // Salvar usuário no localStorage
+      if (data.user.role === 'monitor') {
+        await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+        throw new Error('O perfil de monitor ainda não tem acesso ao sistema.')
+      }
+
+      // Apenas para exibição (nome/perfil). A autorização real é o cookie de sessão.
       localStorage.setItem('user', JSON.stringify(data.user))
 
       // Redirecionar baseado no role
@@ -98,6 +104,10 @@ export default function LoginPage() {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
+
+        <p className={styles.privacyLink}>
+          <Link href="/privacidade">Aviso de Privacidade</Link>
+        </p>
       </div>
     </div>
   )

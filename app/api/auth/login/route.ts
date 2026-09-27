@@ -1,59 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import { supabase } from '@/lib/supabase/client'
+import { createSessionToken, SESSION_COOKIE, SESSION_COOKIE_OPTIONS } from '@/lib/auth/session'
+import { hashPassword, matchesLegacyBase64, verifyPassword } from '@/lib/auth/password'
+import { serverError } from '@/lib/api/errors'
+import { getClientIp, hitLimit, LIMITS, registerStrike, resetLimit } from '@/lib/security/rate-limit'
+import { audit } from '@/lib/security/audit'
 
+// O limite por IP (10/min) e o bloqueio de IP já são aplicados no middleware.
+// Aqui: limite por IP + e-mail e registro de falhas (10 falhas em 15 min bloqueiam o IP).
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
+      return NextResponse.json({ error: 'Email e senha são obrigatórios' }, { status: 400 })
+    }
+
+    const ip = getClientIp(request)
+    const accountKey = `login:${ip}:${email.trim().toLowerCase()}`
+    const { limit, windowSeconds } = LIMITS.loginAccount
+    const { allowed, retryAfter } = await hitLimit(accountKey, limit, windowSeconds)
+    if (!allowed) {
       return NextResponse.json(
-        { error: 'Email e senha são obrigatórios' },
-        { status: 400 }
+        { error: 'Muitas tentativas. Tente novamente em alguns minutos.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
       )
     }
 
-    // Buscar usuário no banco
-    const { data: user, error } = await supabase
+    const { data: user } = await supabase
       .from('users')
-      .select('*')
-      .eq('email', email)
-      .single()
+      .select('id, email, nome, role, password_hash, session_version')
+      .eq('email', email.trim())
+      .maybeSingle()
 
-    console.log('Supabase query result:', { user, error })
+    let authenticated = await verifyPassword(password, user?.password_hash)
 
-    if (error || !user) {
-      console.log('User not found or error:', error)
-      return NextResponse.json(
-        { error: 'Credenciais inválidas', debug: error?.message },
-        { status: 401 }
-      )
+    // Migração: contas criadas com Base64 passam a usar bcrypt no primeiro login
+    if (!authenticated && user && matchesLegacyBase64(password, user.password_hash)) {
+      await supabase
+        .from('users')
+        .update({ password_hash: await hashPassword(password) })
+        .eq('id', user.id)
+      authenticated = true
     }
 
-    // Verificar senha
-    const passwordMatch = await bcrypt.compare(password, user.password_hash)
-
-    if (!passwordMatch) {
-      return NextResponse.json(
-        { error: 'Credenciais inválidas' },
-        { status: 401 }
-      )
+    if (!user || !authenticated) {
+      await registerStrike(ip, 'login_failed')
+      await audit(request, null, { action: 'login_failed', entity: 'auth', entityId: user?.id ?? null })
+      return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 })
     }
 
-    // Remover senha do retorno
-    const { password_hash, ...userWithoutPassword } = user
+    await resetLimit(accountKey)
+    await audit(request, { sub: user.id, role: user.role, nome: user.nome, ver: user.session_version, exp: 0 }, {
+      action: 'login',
+      entity: 'auth',
+      entityId: user.id
+    })
 
-    // Retornar usuário e role
-    return NextResponse.json({
-      user: userWithoutPassword,
+    const response = NextResponse.json({
+      user: { id: user.id, nome: user.nome, email: user.email, role: user.role },
       message: 'Login realizado com sucesso'
     })
 
+    response.cookies.set(SESSION_COOKIE, await createSessionToken(user), SESSION_COOKIE_OPTIONS)
+
+    return response
   } catch (error) {
-    console.error('Erro no login:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return serverError('login', error)
   }
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from '@/assets/css/professor.module.css'
+import ChangePasswordModal from '@/components/ChangePasswordModal'
 
 interface User {
   id: string
@@ -53,6 +54,7 @@ export default function ProfessorChamada() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   // Dados
   const [turmas, setTurmas] = useState<Turma[]>([])
@@ -61,27 +63,31 @@ export default function ProfessorChamada() {
   const [selectedClass, setSelectedClass] = useState<Class | null>(null)
   const [students, setStudents] = useState<Student[]>([])
 
+  // A fonte da verdade é a sessão no servidor; localStorage serve só para exibir o nome
   useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (!userData) {
-      router.push('/login')
-      return
+    async function checkSession() {
+      const res = await fetch('/api/auth/session').catch(() => null)
+      if (!res || !res.ok) {
+        localStorage.removeItem('user')
+        router.push('/login')
+        return
+      }
+      const session = await res.json()
+      if (session.role !== 'professor') {
+        router.push(session.role === 'admin' ? '/admin/dashboard' : '/login')
+        return
+      }
+      const stored = JSON.parse(localStorage.getItem('user') || '{}')
+      setUser({ ...stored, id: session.id, nome: session.nome, role: session.role })
+      loadTurmas()
     }
-
-    const parsedUser = JSON.parse(userData)
-    if (parsedUser.role !== 'professor') {
-      router.push('/admin/dashboard')
-      return
-    }
-
-    setUser(parsedUser)
-    loadTurmas(parsedUser.id)
+    checkSession()
   }, [router])
 
-  async function loadTurmas(professorId: string) {
+  async function loadTurmas() {
     setLoading(true)
     try {
-      const res = await fetch(`/api/professor/turmas?professor_id=${professorId}`)
+      const res = await fetch('/api/professor/turmas')
       const data = await res.json()
       setTurmas(data)
     } catch (e) {
@@ -129,7 +135,7 @@ export default function ProfessorChamada() {
   }
 
   async function saveChamada() {
-    if (!selectedClass || !user) return
+    if (!selectedClass || !selectedTurma || !user) return
 
     const unmarked = students.filter(s => !s.status)
     if (unmarked.length > 0) {
@@ -144,7 +150,7 @@ export default function ProfessorChamada() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           class_id: selectedClass.id,
-          marked_by: user.id,
+          turma_id: selectedTurma.id,
           attendance: students.map(s => ({
             student_id: s.id,
             status: s.status
@@ -158,6 +164,9 @@ export default function ProfessorChamada() {
           setSuccess('')
           setScreen('aulas')
         }, 2000)
+      } else {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error || 'Erro ao salvar chamada')
       }
     } catch (e) {
       console.error(e)
@@ -178,7 +187,8 @@ export default function ProfessorChamada() {
     }
   }
 
-  function logout() {
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
     localStorage.removeItem('user')
     router.push('/login')
   }
@@ -204,11 +214,20 @@ export default function ProfessorChamada() {
               {screen === 'chamada' && 'Chamada'}
             </span>
           </div>
-          <button className={styles.logoutBtn} onClick={logout}>
-            Sair
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {screen === 'turmas' && (
+              <button className={styles.logoutBtn} onClick={() => setShowPassword(true)}>
+                Senha
+              </button>
+            )}
+            <button className={styles.logoutBtn} onClick={logout}>
+              Sair
+            </button>
+          </div>
         </div>
       </header>
+
+      {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}
 
       <div className={styles.content} style={{ paddingBottom: screen === 'chamada' ? '100px' : undefined }}>
         {loading ? (

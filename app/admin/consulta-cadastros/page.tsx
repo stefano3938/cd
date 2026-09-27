@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import styles from '@/assets/css/admin.module.css'
 import { Student, Turma } from '@/lib/supabase/types'
+import { calcularIdade, isMenor } from '@/lib/lgpd/config'
 
 export default function ConsultaCadastros() {
   const [students, setStudents] = useState<Student[]>([])
@@ -12,6 +13,69 @@ export default function ConsultaCadastros() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterTurma, setFilterTurma] = useState('')
+  const [fichaError, setFichaError] = useState('')
+  const [consentTitular, setConsentTitular] = useState<'' | 'aluno' | 'responsavel'>('')
+  const [consentConfirmado, setConsentConfirmado] = useState(false)
+  const [savingConsent, setSavingConsent] = useState(false)
+
+  // Carrega a ficha pelo servidor para que a visualização fique registrada na auditoria
+  async function openFicha(id: string) {
+    setFichaError('')
+    setConsentConfirmado(false)
+    const res = await fetch(`/api/admin/students/${id}`)
+    const data = await res.json()
+    if (!res.ok) {
+      setFichaError(data.error || 'Erro ao carregar ficha')
+      return
+    }
+    setConsentTitular(isMenor(data.data_nascimento) ? 'responsavel' : '')
+    setSelectedStudent(data)
+  }
+
+  async function registrarConsentimento() {
+    if (!selectedStudent) return
+    setSavingConsent(true)
+    setFichaError('')
+    try {
+      const res = await fetch(`/api/admin/students/${selectedStudent.id}/consent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consentimento_titular: consentTitular, consentimento_confirmado: consentConfirmado })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setFichaError(data.error || 'Erro ao registrar consentimento')
+        return
+      }
+      const updated = { ...selectedStudent, ...data }
+      setSelectedStudent(updated)
+      setStudents(prev => prev.map(s => (s.id === updated.id ? { ...s, ...data } : s)))
+    } finally {
+      setSavingConsent(false)
+    }
+  }
+
+  async function exportarDados() {
+    if (!selectedStudent) return
+    const res = await fetch(`/api/admin/students/${selectedStudent.id}/export`)
+    if (!res.ok) {
+      setFichaError('Erro ao exportar dados')
+      return
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `dados-aluno-${selectedStudent.id}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function consentBadge(student: Student) {
+    if (student.anonimizado_em) return <span className={`${styles.badge} ${styles.badgeMuted}`}>Anonimizado</span>
+    if (student.consentimento_em) return <span className={`${styles.badge} ${styles.badgeOk}`}>Registrado</span>
+    return <span className={`${styles.badge} ${styles.badgeWarning}`}>Pendente</span>
+  }
 
   useEffect(() => {
     loadData()
@@ -38,17 +102,6 @@ export default function ConsultaCadastros() {
     } finally {
       setLoading(false)
     }
-  }
-
-  function calcularIdade(dataNascimento: string): number {
-    const hoje = new Date()
-    const nascimento = new Date(dataNascimento)
-    let idade = hoje.getFullYear() - nascimento.getFullYear()
-    const mes = hoje.getMonth() - nascimento.getMonth()
-    if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
-      idade--
-    }
-    return idade
   }
 
   function getTurmaLabel(turmaId: string): string {
@@ -116,6 +169,7 @@ export default function ConsultaCadastros() {
                 <th>Turma</th>
                 <th>Responsável</th>
                 <th>Geração</th>
+                <th>Consentimento</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -127,10 +181,11 @@ export default function ConsultaCadastros() {
                   <td>{getTurmaLabel(student.turma_id)}</td>
                   <td>{student.nome_responsavel || '-'}</td>
                   <td>{student.geracao || '-'}</td>
+                  <td>{consentBadge(student)}</td>
                   <td className={styles.actions}>
                     <button
                       className={`${styles.btn} ${styles.btnPrimary} ${styles.btnSmall}`}
-                      onClick={() => setSelectedStudent(student)}
+                      onClick={() => openFicha(student.id)}
                     >
                       Ver Ficha
                     </button>
@@ -230,9 +285,60 @@ export default function ConsultaCadastros() {
                   </div>
                 </div>
               </div>
+
+              {/* LGPD */}
+              <div>
+                <h4 style={{ color: 'var(--primary-blue)', marginBottom: '10px', borderBottom: '2px solid var(--primary-blue)', paddingBottom: '5px' }}>
+                  Privacidade (LGPD)
+                </h4>
+                {fichaError && <div className={styles.error}>{fichaError}</div>}
+
+                {selectedStudent.anonimizado_em ? (
+                  <p className={styles.consentText}>
+                    Dados anonimizados em {new Date(selectedStudent.anonimizado_em).toLocaleDateString('pt-BR')}.
+                  </p>
+                ) : selectedStudent.consentimento_em ? (
+                  <p className={styles.consentText}>
+                    {consentBadge(selectedStudent)}{' '}
+                    Consentimento do {selectedStudent.consentimento_titular === 'responsavel' ? 'responsável' : 'aluno'} em{' '}
+                    {new Date(selectedStudent.consentimento_em).toLocaleDateString('pt-BR')} (aviso versão {selectedStudent.consentimento_versao}).
+                  </p>
+                ) : (
+                  <div className={styles.consentBox}>
+                    <p className={styles.consentText}>
+                      {consentBadge(selectedStudent)} Nenhum consentimento registrado para este aluno.
+                    </p>
+                    <select
+                      className={styles.select}
+                      value={consentTitular}
+                      onChange={e => setConsentTitular(e.target.value as '' | 'aluno' | 'responsavel')}
+                    >
+                      <option value="">Quem autorizou?</option>
+                      <option value="aluno" disabled={isMenor(selectedStudent.data_nascimento)}>O próprio aluno (maior de idade)</option>
+                      <option value="responsavel">O responsável</option>
+                    </select>
+                    <label className={styles.checkboxLabel}>
+                      <input type="checkbox" checked={consentConfirmado} onChange={e => setConsentConfirmado(e.target.checked)} />
+                      Confirmo que o consentimento foi obtido conforme o Aviso de Privacidade
+                    </label>
+                    <button
+                      className={`${styles.btn} ${styles.btnPrimary} ${styles.btnSmall}`}
+                      onClick={registrarConsentimento}
+                      disabled={savingConsent || !consentTitular || !consentConfirmado}
+                    >
+                      {savingConsent ? 'Salvando...' : 'Registrar consentimento'}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className={styles.modalFooter}>
+              {!selectedStudent.anonimizado_em && (
+                <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={exportarDados}>
+                  Exportar dados (JSON)
+                </button>
+              )}
               <button
                 className={`${styles.btn} ${styles.btnSecondary}`}
                 onClick={() => setSelectedStudent(null)}
