@@ -80,14 +80,16 @@ Nome, data de nascimento, e-mail, senha (mín. 8 caracteres), líder direto, ger
 
 ### 🔧 Pendente — operação (fazer antes de usar com dados reais)
 
-- [ ] Apagar `app/api/create-admin/` e `app/api/test-db/`
-- [ ] Configurar `SUPABASE_SERVICE_ROLE_KEY` e `SESSION_SECRET` (local e Vercel)
-- [ ] `npm install` (atualiza Next e lockfile)
-- [ ] Rodar migrações `001` a `004` em ordem (todas obrigatórias)
-- [ ] `npm install`, `npm test`, `npm run lint` e `npm run build` — o código foi escrito sem poder compilar
-- [ ] Apagar `eslint.config.mjs` (substituído por `.eslintrc.json`)
+- [x] Apagar `app/api/create-admin/` e `app/api/test-db/`
+- [x] Configurar `SUPABASE_SERVICE_ROLE_KEY` e `SESSION_SECRET` no `.env.local`
+- [x] Configurar as mesmas variáveis na Vercel
+- [x] `npm install` (atualiza Next e lockfile)
+- [x] Rodar migrações `001` a `004` em ordem (todas obrigatórias) — conferido em 27/09/2026: RLS ativo, acesso anônimo bloqueado, funções e colunas criadas
+- [ ] Rodar migração `005_indices.sql` (ajuste de índices; não urgente)
+- [x] `npm install`, `npm test`, `npm run lint` e `npm run build`
+- [x] Apagar `eslint.config.mjs` (substituído por `.eslintrc.json`)
 - [ ] Criar admin com `scripts/create-admin.mjs`; remover/trocar senha de `admin@capacitacao.com`
-- [ ] Avaliar se houve acesso indevido no período em que a API era pública
+- [x] Avaliar se houve acesso indevido no período em que a API era pública — 27/09/2026: só 1 admin e 1 professor, ambos criados em jan/2026 pela equipe; nenhuma conta estranha. Leituras anônimas antigas não têm como ser verificadas (logs do Supabase têm retenção curta)
 - [ ] Preencher `CONTROLLER` em `lib/lgpd/config.ts` e os trechos `[...]` do aviso de privacidade
 
 ## Roadmap
