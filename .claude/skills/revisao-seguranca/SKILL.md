@@ -11,7 +11,7 @@ Revise as mudanças (ex.: `git diff main...HEAD`) contra os itens abaixo. Report
 - Todo handler em `app/api/**/route.ts` (exceto `app/api/auth/*`) começa com `requireRole(...)`.
 - Rotas de professor validam posse da turma (`canAccessTurma`) e pertinência de aula/aluno à turma.
 - Nenhum ID de ator vindo do cliente (`marked_by`, `created_by`, `professor_id`, `user_id`) é usado para gravar ou filtrar — deve ser `session.sub`.
-- Decisões de acesso no front (`localStorage.user`, `role` no cliente) nunca substituem checagem no servidor.
+- Decisões de acesso no front (`role` no cliente) nunca substituem checagem no servidor. Nada de `localStorage`/`sessionStorage`: dados do usuário vêm de `GET /api/auth/session`.
 - Alterações em `middleware.ts` não removem `/api/:path*` do `matcher`.
 - Troca de senha/perfil chama `revokeSessions`; `getSession` continua conferindo `session_version` no banco.
 - Operações sobre dados pessoais registram `audit(...)` (sem valores pessoais em `details`).

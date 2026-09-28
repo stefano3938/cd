@@ -4,7 +4,6 @@ export type UserRole = 'admin' | 'professor' | 'monitor'
 
 export interface User {
   id: string
-  auth_id?: string
   email: string
   nome: string
   telefone?: string

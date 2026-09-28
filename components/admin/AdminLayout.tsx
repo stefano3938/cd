@@ -1,52 +1,28 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import styles from '@/assets/css/admin.module.css'
-<<<<<<< HEAD
-import { useAuth } from '@/lib/auth/AuthContext'
-=======
 import ChangePasswordModal from '@/components/ChangePasswordModal'
 
 interface User {
   id: string
   nome: string
-  email: string
   role: string
 }
->>>>>>> 15730aa7f64577f0d7fb8de6e6f75e38549f3300
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-<<<<<<< HEAD
-  const { profile, loading, signOut, isAdmin } = useAuth()
-=======
   const [user, setUser] = useState<User | null>(null)
   const [showPassword, setShowPassword] = useState(false)
->>>>>>> 15730aa7f64577f0d7fb8de6e6f75e38549f3300
 
-  // A fonte da verdade é a sessão no servidor; localStorage serve só para exibir o nome
+  // Nome e perfil vêm da sessão validada no servidor (nada fica no navegador além do cookie)
   useEffect(() => {
-<<<<<<< HEAD
-    if (!loading && !profile) {
-      router.push('/login')
-      return
-    }
-    if (!loading && !isAdmin) {
-      router.push('/professor/chamada')
-      return
-    }
-  }, [loading, profile, isAdmin, router])
-
-  const handleLogout = async () => {
-    await signOut()
-=======
     async function checkSession() {
       const res = await fetch('/api/auth/session').catch(() => null)
       if (!res || !res.ok) {
-        localStorage.removeItem('user')
         router.push('/login')
         return
       }
@@ -55,16 +31,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         router.push('/professor/chamada')
         return
       }
-      const stored = JSON.parse(localStorage.getItem('user') || '{}')
-      setUser({ ...stored, id: session.id, nome: session.nome, role: session.role })
+      setUser({ id: session.id, nome: session.nome, role: session.role })
     }
     checkSession()
   }, [router])
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
-    localStorage.removeItem('user')
->>>>>>> 15730aa7f64577f0d7fb8de6e6f75e38549f3300
     router.push('/login')
   }
 
@@ -79,13 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/lgpd', label: 'LGPD e Segurança' },
   ]
 
-  if (loading || !profile) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        Carregando...
-      </div>
-    )
-  }
+  if (!user) return null
 
   return (
     <div className={styles.layout}>
@@ -109,14 +76,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {navItems.find(i => i.href === pathname)?.label || 'Admin'}
           </h1>
           <div className={styles.userInfo}>
-<<<<<<< HEAD
-            <span className={styles.userName}>{profile.nome}</span>
-=======
             <span className={styles.userName}>{user.nome}</span>
             <button onClick={() => setShowPassword(true)} className={styles.logoutBtn}>
               Alterar senha
             </button>
->>>>>>> 15730aa7f64577f0d7fb8de6e6f75e38549f3300
             <button onClick={handleLogout} className={styles.logoutBtn}>
               Sair
             </button>

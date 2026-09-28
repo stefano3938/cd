@@ -57,7 +57,7 @@ Variáveis obrigatórias: ver `.env.example` (`NEXT_PUBLIC_SUPABASE_URL`, `SUPAB
 - Senhas: `hashPassword` / `validatePassword` de `lib/auth/password.ts`. Nunca Base64, nunca log de senha.
 - Erros de banco: `return serverError('contexto', error)` — nunca devolver `error.message` ao cliente.
 - `lib/supabase/client.ts` usa a service role key: **nunca importar em componente `'use client'`**.
-- `localStorage.user` serve só para exibir nome/perfil na UI; a autorização real é o cookie `session`. Telas protegidas validam com `GET /api/auth/session` ao abrir.
+- **Nada em `localStorage`/`sessionStorage`.** O único estado de login no navegador é o cookie `session` (HttpOnly). Telas protegidas chamam `GET /api/auth/session` ao abrir e usam o `nome`/`role` devolvidos para exibir na UI.
 - Mudou senha ou perfil de um usuário → `revokeSessions(id)` (derruba sessões abertas).
 - Não criar rotas de debug/seed públicas (ex.: `create-admin`, `test-db`).
 - Operação com várias escritas dependentes → função SQL (transação) chamada via `supabase.rpc`, nunca várias chamadas soltas.

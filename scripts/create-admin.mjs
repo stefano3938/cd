@@ -26,9 +26,19 @@ if (!email || password.length < 12) {
 const supabase = createClient(url, key, { auth: { persistSession: false } })
 const password_hash = await bcrypt.hash(password, 12)
 
+// Se o usuário já existe, incrementa session_version para derrubar as sessões abertas
+const { data: existing } = await supabase
+  .from('users')
+  .select('session_version')
+  .eq('email', email)
+  .maybeSingle()
+
 const { error } = await supabase
   .from('users')
-  .upsert({ email, nome, role: 'admin', password_hash }, { onConflict: 'email' })
+  .upsert(
+    { email, nome, role: 'admin', password_hash, session_version: (existing?.session_version ?? -1) + 1 },
+    { onConflict: 'email' }
+  )
 
 if (error) {
   console.error('Erro ao criar admin:', error.message)

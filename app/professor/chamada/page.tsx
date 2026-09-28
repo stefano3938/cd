@@ -8,7 +8,6 @@ import ChangePasswordModal from '@/components/ChangePasswordModal'
 interface User {
   id: string
   nome: string
-  email: string
   role: string
 }
 
@@ -63,12 +62,11 @@ export default function ProfessorChamada() {
   const [selectedClass, setSelectedClass] = useState<Class | null>(null)
   const [students, setStudents] = useState<Student[]>([])
 
-  // A fonte da verdade é a sessão no servidor; localStorage serve só para exibir o nome
+  // Nome e perfil vêm da sessão validada no servidor (nada fica no navegador além do cookie)
   useEffect(() => {
     async function checkSession() {
       const res = await fetch('/api/auth/session').catch(() => null)
       if (!res || !res.ok) {
-        localStorage.removeItem('user')
         router.push('/login')
         return
       }
@@ -77,8 +75,7 @@ export default function ProfessorChamada() {
         router.push(session.role === 'admin' ? '/admin/dashboard' : '/login')
         return
       }
-      const stored = JSON.parse(localStorage.getItem('user') || '{}')
-      setUser({ ...stored, id: session.id, nome: session.nome, role: session.role })
+      setUser({ id: session.id, nome: session.nome, role: session.role })
       loadTurmas()
     }
     checkSession()
@@ -189,7 +186,6 @@ export default function ProfessorChamada() {
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
-    localStorage.removeItem('user')
     router.push('/login')
   }
 

@@ -4,9 +4,8 @@
 -- Tabela de Usuários (Admins, Professores e Monitores)
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  auth_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
-  password_hash TEXT,
+  password_hash TEXT NOT NULL,
   nome TEXT NOT NULL,
   telefone TEXT,
   role TEXT NOT NULL CHECK (role IN ('admin', 'professor', 'monitor')),
@@ -116,94 +115,3 @@ COMMENT ON TABLE classes IS 'Aulas de cada módulo';
 COMMENT ON TABLE turmas IS 'Turmas/Horários das aulas';
 COMMENT ON TABLE students IS 'Alunos matriculados';
 COMMENT ON TABLE attendance IS 'Registro de presença dos alunos';
-
--- =============================================
--- ROW LEVEL SECURITY (RLS)
--- =============================================
-
--- Habilita RLS em todas as tabelas
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE modules ENABLE ROW LEVEL SECURITY;
-ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE turmas ENABLE ROW LEVEL SECURITY;
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
-ALTER TABLE turma_professors ENABLE ROW LEVEL SECURITY;
-
--- Função auxiliar para verificar role do usuário
-CREATE OR REPLACE FUNCTION get_user_role(user_auth_id UUID)
-RETURNS TEXT AS $$
-  SELECT role FROM users WHERE auth_id = user_auth_id;
-$$ LANGUAGE SQL SECURITY DEFINER;
-
--- Políticas para USERS
-CREATE POLICY "Admins podem ver todos os usuários" ON users
-  FOR SELECT USING (get_user_role(auth.uid()) = 'admin');
-
-CREATE POLICY "Admins podem criar usuários" ON users
-  FOR INSERT WITH CHECK (get_user_role(auth.uid()) = 'admin');
-
-CREATE POLICY "Admins podem atualizar usuários" ON users
-  FOR UPDATE USING (get_user_role(auth.uid()) = 'admin');
-
-CREATE POLICY "Admins podem deletar usuários" ON users
-  FOR DELETE USING (get_user_role(auth.uid()) = 'admin');
-
-CREATE POLICY "Usuários podem ver próprio perfil" ON users
-  FOR SELECT USING (auth_id = auth.uid());
-
--- Políticas para COURSES (admin pode tudo, outros podem ver)
-CREATE POLICY "Todos autenticados podem ver cursos" ON courses
-  FOR SELECT USING (auth.uid() IS NOT NULL);
-
-CREATE POLICY "Admins podem gerenciar cursos" ON courses
-  FOR ALL USING (get_user_role(auth.uid()) = 'admin');
-
--- Políticas para MODULES
-CREATE POLICY "Todos autenticados podem ver módulos" ON modules
-  FOR SELECT USING (auth.uid() IS NOT NULL);
-
-CREATE POLICY "Admins podem gerenciar módulos" ON modules
-  FOR ALL USING (get_user_role(auth.uid()) = 'admin');
-
--- Políticas para CLASSES
-CREATE POLICY "Todos autenticados podem ver aulas" ON classes
-  FOR SELECT USING (auth.uid() IS NOT NULL);
-
-CREATE POLICY "Admins podem gerenciar aulas" ON classes
-  FOR ALL USING (get_user_role(auth.uid()) = 'admin');
-
--- Políticas para TURMAS
-CREATE POLICY "Todos autenticados podem ver turmas" ON turmas
-  FOR SELECT USING (auth.uid() IS NOT NULL);
-
-CREATE POLICY "Admins podem gerenciar turmas" ON turmas
-  FOR ALL USING (get_user_role(auth.uid()) = 'admin');
-
--- Políticas para STUDENTS
-CREATE POLICY "Admins e professores podem ver alunos" ON students
-  FOR SELECT USING (get_user_role(auth.uid()) IN ('admin', 'professor'));
-
-CREATE POLICY "Admins podem gerenciar alunos" ON students
-  FOR ALL USING (get_user_role(auth.uid()) = 'admin');
-
--- Políticas para ATTENDANCE
-CREATE POLICY "Admins e professores podem ver frequência" ON attendance
-  FOR SELECT USING (get_user_role(auth.uid()) IN ('admin', 'professor'));
-
-CREATE POLICY "Admins e professores podem registrar frequência" ON attendance
-  FOR INSERT WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'professor'));
-
-CREATE POLICY "Admins e professores podem atualizar frequência" ON attendance
-  FOR UPDATE USING (get_user_role(auth.uid()) IN ('admin', 'professor'));
-
-CREATE POLICY "Admins podem deletar frequência" ON attendance
-  FOR DELETE USING (get_user_role(auth.uid()) = 'admin');
-
--- Políticas para TURMA_PROFESSORS
-CREATE POLICY "Todos autenticados podem ver turma_professors" ON turma_professors
-  FOR SELECT USING (auth.uid() IS NOT NULL);
-
-CREATE POLICY "Admins podem gerenciar turma_professors" ON turma_professors
-  FOR ALL USING (get_user_role(auth.uid()) = 'admin');
