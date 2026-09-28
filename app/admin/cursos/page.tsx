@@ -71,14 +71,13 @@ export default function CursosPage() {
     e.preventDefault()
     setError('')
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
     const url = editing ? `/api/admin/courses/${editing.id}` : '/api/admin/courses'
     const method = editing ? 'PUT' : 'POST'
 
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, created_by: user.id })
+      body: JSON.stringify(form)
     })
 
     if (!res.ok) {

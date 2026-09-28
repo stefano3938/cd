@@ -2,6 +2,7 @@
 
 import { FormEvent, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import styles from '@/assets/css/login.module.css'
 import { useAuth } from '@/lib/auth/AuthContext'
 
@@ -45,8 +46,28 @@ export default function LoginPage() {
           setError(signInError)
         }
       }
+<<<<<<< HEAD
     } catch (err) {
       setError('Erro ao fazer login. Tente novamente.')
+=======
+
+      if (data.user.role === 'monitor') {
+        await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+        throw new Error('O perfil de monitor ainda não tem acesso ao sistema.')
+      }
+
+      // Apenas para exibição (nome/perfil). A autorização real é o cookie de sessão.
+      localStorage.setItem('user', JSON.stringify(data.user))
+
+      // Redirecionar baseado no role
+      if (data.user.role === 'admin') {
+        router.push('/admin/dashboard')
+      } else {
+        router.push('/professor/chamada')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.')
+>>>>>>> 15730aa7f64577f0d7fb8de6e6f75e38549f3300
       console.error(err)
     } finally {
       setLoading(false)
@@ -107,6 +128,10 @@ export default function LoginPage() {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
+
+        <p className={styles.privacyLink}>
+          <Link href="/privacidade">Aviso de Privacidade</Link>
+        </p>
       </div>
     </div>
   )

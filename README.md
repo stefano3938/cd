@@ -19,7 +19,7 @@ Sistema de gerenciamento para o curso Capacitação Destino da igreja.
 
 ## Stack Tecnológica
 
-- **Next.js 15** - Framework React com App Router
+- **Next.js 14** - Framework React com App Router
 - **TypeScript** - Tipagem estática
 - **Supabase** - Banco de dados e autenticação
 - **CSS Modules** - Estilização
@@ -69,22 +69,48 @@ npm install
 ### 2. Configurar Supabase
 
 1. Crie um projeto no [Supabase](https://supabase.com)
-2. Copie `.env.local.example` para `.env.local`
+2. Copie `.env.example` para `.env.local`
 3. Preencha as variáveis de ambiente:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_anon_key
+SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key   # secreta, só no servidor
+SESSION_SECRET=string_aleatoria_de_32+_caracteres
 ```
 
 ### 3. Criar tabelas no banco
 
-Execute o script SQL em `lib/supabase/schema.sql` no SQL Editor do Supabase.
+No SQL Editor do Supabase, execute em ordem:
 
-### 4. Rodar o projeto
+1. `lib/supabase/schema.sql`
+2. `lib/supabase/migrations/001_enable_rls.sql` (bloqueia acesso direto pelas chaves públicas)
+3. `lib/supabase/migrations/002_rate_limit_ip_block.sql` (rate limit e bloqueio de IP)
+4. `lib/supabase/migrations/003_lgpd_auditoria.sql` (auditoria, consentimento, anonimização, revogação de sessão) — **obrigatória**
+5. `lib/supabase/migrations/004_turma_transacional.sql` (turma + professores em transação) — **obrigatória**
+
+### 4. Criar o primeiro administrador
+
+```bash
+node --env-file=.env.local scripts/create-admin.mjs
+```
+
+## Segurança
+
+- Login gera um cookie de sessão `httpOnly` assinado (HMAC). Cada rota de API valida a sessão e o perfil (`requireRole`), além do `middleware.ts`.
+- Professores só acessam as turmas atribuídas a eles; quem marcou a presença é registrado a partir da sessão.
+- Senhas com bcrypt. Contas antigas criadas com Base64 são migradas automaticamente no próximo login.
+- O cliente Supabase (`lib/supabase/client.ts`) usa a service role key e deve ser importado apenas em código de servidor.
+- Rate limit em todas as rotas `/api` e bloqueio automático de IPs abusivos.
+- Sessões revogáveis (troca de senha/perfil ou exclusão derruba a sessão na hora).
+- LGPD: aviso de privacidade (`/privacidade`), consentimento, auditoria, exportação e anonimização — tela "LGPD e Segurança".
+
+Detalhes em [docs/SEGURANCA.md](docs/SEGURANCA.md) e [docs/LGPD.md](docs/LGPD.md). Planejamento em [PLANEJAMENTO.md](PLANEJAMENTO.md).
+
+### 5. Rodar o projeto
 
 ```bash
 npm run dev
+npm test        # testes de segurança/LGPD (não precisam de banco)
 ```
 
 Acesse [http://localhost:3000](http://localhost:3000)
@@ -106,4 +132,4 @@ Acesse [http://localhost:3000](http://localhost:3000)
 
 ## Desenvolvimento
 
-O foco atual é na funcionalidade. Segurança e testes serão implementados em versões futuras.
+Regras de código, segurança e LGPD para contribuir estão em [CLAUDE.md](CLAUDE.md).

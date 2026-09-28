@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
+import { requireRole } from '@/lib/auth/guard'
+import { serverError } from '@/lib/api/errors'
 
 export async function POST(request: NextRequest) {
+  const session = await requireRole('admin')
+  if (session instanceof NextResponse) return session
+
   const body = await request.json()
   const { course_id, nome, ordem, numero_de_aulas } = body
 
@@ -15,8 +20,6 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  if (error) return serverError('modules.create', error)
   return NextResponse.json(data, { status: 201 })
 }

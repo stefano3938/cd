@@ -74,6 +74,10 @@ export interface Student {
   nome_lider_direto?: string
   geracao?: string
   telefone_lider_direto?: string
+  consentimento_em?: string | null
+  consentimento_versao?: string | null
+  consentimento_titular?: 'aluno' | 'responsavel' | null
+  anonimizado_em?: string | null
   created_at: string
 }
 

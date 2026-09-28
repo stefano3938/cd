@@ -1,16 +1,9 @@
--- Seed inicial - Criar usuário admin
-
--- Execute este script no SQL Editor do Supabase após executar o schema.sql
-
--- Inserir usuário administrador
--- Email: admin@capacitacao.com
--- Senha: admin
--- Hash bcrypt da senha "admin": $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
-
-INSERT INTO users (email, password_hash, nome, role)
-VALUES (
-  'admin@capacitacao.com',
-  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
-  'Administrador',
-  'admin'
-);
+-- Seed inicial
+--
+-- O usuário administrador NÃO é mais criado por aqui (a versão anterior usava a senha "admin").
+-- Para criar o primeiro admin com uma senha forte, rode:
+--
+--   node --env-file=.env.local scripts/create-admin.mjs
+--
+-- Se o admin antigo (admin@capacitacao.com / senha "admin") já existe no banco,
+-- troque a senha dele imediatamente ou exclua-o depois de criar o novo admin.

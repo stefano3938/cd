@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
+import { requireRole } from '@/lib/auth/guard'
+import { serverError } from '@/lib/api/errors'
 
 export async function GET(request: NextRequest) {
+  const session = await requireRole('admin')
+  if (session instanceof NextResponse) return session
+
   const turma_id = request.nextUrl.searchParams.get('turma_id')
   const course_id = request.nextUrl.searchParams.get('course_id')
 
@@ -16,9 +21,7 @@ export async function GET(request: NextRequest) {
 
   const { data: turmas, error: turmasError } = await turmasQuery
 
-  if (turmasError) {
-    return NextResponse.json({ error: turmasError.message }, { status: 500 })
-  }
+  if (turmasError) return serverError('reports.turmas', turmasError)
 
   // Se turma específica, buscar detalhes
   if (turma_id) {
@@ -29,9 +32,7 @@ export async function GET(request: NextRequest) {
       .eq('turma_id', turma_id)
       .order('nome')
 
-    if (studentsError) {
-      return NextResponse.json({ error: studentsError.message }, { status: 500 })
-    }
+    if (studentsError) return serverError('reports.students', studentsError)
 
     // Buscar turma com curso
     const { data: turma } = await supabase
