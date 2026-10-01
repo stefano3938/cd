@@ -102,7 +102,7 @@ node --env-file=.env.local scripts/create-admin.mjs
 - O cliente Supabase (`lib/supabase/client.ts`) usa a service role key e deve ser importado apenas em código de servidor.
 - Rate limit em todas as rotas `/api` e bloqueio automático de IPs abusivos.
 - Sessões revogáveis (troca de senha/perfil ou exclusão derruba a sessão na hora).
-- LGPD: aviso de privacidade (`/privacidade`), consentimento, auditoria, exportação e anonimização — tela "LGPD e Segurança".
+- LGPD: aviso de privacidade (`/privacidade`), consentimento, auditoria, exportação e anonimização (sem tela própria; operação pelo Supabase — ver `docs/SEGURANCA.md` e `docs/LGPD.md`).
 
 Detalhes em [docs/SEGURANCA.md](docs/SEGURANCA.md) e [docs/LGPD.md](docs/LGPD.md). Planejamento em [PLANEJAMENTO.md](PLANEJAMENTO.md).
 

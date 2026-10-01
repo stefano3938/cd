@@ -36,8 +36,8 @@ Dados do controlador exibidos no aviso: `lib/lgpd/config.ts` (`CONTROLLER`) — 
 | `students` | Aluno/responsável | data, versão do aviso e titular do consentimento; data de anonimização | Prova do consentimento (art. 8º §2º) | Admin |
 | `attendance` | Aluno | presença/falta por aula, quem marcou, quando | Controle de frequência | Admin; professor da turma |
 | `users` | Admin/professor/monitor | nome, e-mail, telefone, data de nascimento, foto, hash de senha, perfil, versão da sessão | Acesso ao sistema | Admin (sem hash de senha) |
-| `audit_log` | Usuários internos; visitantes | quem, ação, registro afetado (ID), IP, data | Trilha de auditoria (art. 37) e segurança | Admin (tela LGPD e Segurança) |
-| `ip_blocks` | Qualquer visitante | IP, motivo, horário | Segurança (bloqueio de abuso) | Admin (tela LGPD e Segurança) |
+| `audit_log` | Usuários internos; visitantes | quem, ação, registro afetado (ID), IP, data | Trilha de auditoria (art. 37) e segurança | Admin (Supabase, tabela no SQL Editor) |
+| `ip_blocks` | Qualquer visitante | IP, motivo, horário | Segurança (bloqueio de abuso) | Admin (Supabase, tabela no SQL Editor) |
 | `rate_limits` | Qualquer visitante | hash SHA-256 de IP (+ e-mail no login) | Segurança (rate limit) | Ninguém pela aplicação |
 | Logs Vercel/Supabase | Visitantes/usuários | IP, rotas acessadas, erros | Operação e segurança | Mantenedores |
 
@@ -55,7 +55,7 @@ Ao adicionar campo/tabela/relatório/integração com dado pessoal, **atualize e
 
 | Dado | Prazo proposto | Status |
 |------|----------------|--------|
-| Alunos e presenças de turmas encerradas | **[Decisão do controlador]** — ex.: 2 anos após o fim do curso, depois anonimizar | ✅ Anonimização por turma em "LGPD e Segurança" (manual, irreversível, exige digitar o nome da turma) |
+| Alunos e presenças de turmas encerradas | **[Decisão do controlador]** — ex.: 2 anos após o fim do curso, depois anonimizar | ✅ Anonimização por turma: `SELECT anonimizar_turma('<id da turma>');` no SQL Editor (manual, irreversível) |
 | Usuários inativos | Remover ao sair do voluntariado | Manual (admin exclui) |
 | `audit_log` | **[Decisão do controlador]** — ex.: 24 meses | ✅ Função `SELECT purge_audit_log(24);` (rodar periodicamente) |
 | `rate_limits` | 1 dia | ✅ Limpeza automática |
@@ -78,7 +78,7 @@ Canal para o titular: `CONTROLLER.contato` em `lib/lgpd/config.ts` — **[Decis�
 
 ## Auditoria (art. 37)
 
-Registrado em `audit_log` e visível em **LGPD e Segurança → Auditoria**:
+Registrado em `audit_log` (consultar no SQL Editor do Supabase):
 
 - Alunos: listagem, visualização de ficha, criação, importação, alteração, exclusão, exportação, consentimento, anonimização de turma
 - Usuários/professores: criação, alteração (quais campos), exclusão, troca de senha

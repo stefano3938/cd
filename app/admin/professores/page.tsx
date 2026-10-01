@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import AdminLayout from '@/components/admin/AdminLayout'
 import styles from '@/assets/css/admin.module.css'
 
 interface Professor {
@@ -72,7 +71,7 @@ export default function ProfessoresPage() {
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <h2 className={styles.cardTitle}>Professores</h2>
@@ -145,6 +144,6 @@ export default function ProfessoresPage() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   )
 }

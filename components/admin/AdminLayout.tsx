@@ -49,11 +49,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/frequencia', label: 'Controle de Frequência' },
     { href: '/admin/consulta-cadastros', label: 'Consulta de Cadastros' },
     { href: '/admin/consulta-turmas', label: 'Consulta de Turmas' },
-    { href: '/admin/lgpd', label: 'LGPD e Segurança' },
   ]
 
-  if (!user) return null
-
+  // O conteúdo aparece sem esperar a consulta da sessão: a página já é protegida pelo
+  // middleware e cada rota de API valida a sessão (requireRole). Só o nome aguarda.
   return (
     <div className={styles.layout}>
       <aside className={styles.sidebar}>
@@ -76,7 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {navItems.find(i => i.href === pathname)?.label || 'Admin'}
           </h1>
           <div className={styles.userInfo}>
-            <span className={styles.userName}>{user.nome}</span>
+            <span className={styles.userName}>{user?.nome ?? ''}</span>
             <button onClick={() => setShowPassword(true)} className={styles.logoutBtn}>
               Alterar senha
             </button>

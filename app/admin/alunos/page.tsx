@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import AdminLayout from '@/components/admin/AdminLayout'
 import styles from '@/assets/css/admin.module.css'
 
 interface Turma { id: string; nome: string }
@@ -192,7 +191,7 @@ export default function AlunosPage() {
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <h2 className={styles.cardTitle}>Alunos</h2>
@@ -369,6 +368,6 @@ export default function AlunosPage() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   )
 }

@@ -19,19 +19,22 @@ export async function POST(request: NextRequest) {
     const ip = getClientIp(request)
     const accountKey = `login:${ip}:${email.trim().toLowerCase()}`
     const { limit, windowSeconds } = LIMITS.loginAccount
-    const { allowed, retryAfter } = await hitLimit(accountKey, limit, windowSeconds)
+    // Limite e busca do usuário são independentes: em paralelo (cada ida ao banco custa ~150 ms).
+    // A senha só é verificada depois de confirmar que o limite não estourou.
+    const [{ allowed, retryAfter }, { data: user }] = await Promise.all([
+      hitLimit(accountKey, limit, windowSeconds),
+      supabase
+        .from('users')
+        .select('id, email, nome, role, password_hash, session_version')
+        .eq('email', email.trim())
+        .maybeSingle(),
+    ])
     if (!allowed) {
       return NextResponse.json(
         { error: 'Muitas tentativas. Tente novamente em alguns minutos.' },
         { status: 429, headers: { 'Retry-After': String(retryAfter) } }
       )
     }
-
-    const { data: user } = await supabase
-      .from('users')
-      .select('id, email, nome, role, password_hash, session_version')
-      .eq('email', email.trim())
-      .maybeSingle()
 
     let authenticated = await verifyPassword(password, user?.password_hash)
 
@@ -45,17 +48,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user || !authenticated) {
-      await registerStrike(ip, 'login_failed')
-      await audit(request, null, { action: 'login_failed', entity: 'auth', entityId: user?.id ?? null })
+      await Promise.all([
+        registerStrike(ip, 'login_failed'),
+        audit(request, null, { action: 'login_failed', entity: 'auth', entityId: user?.id ?? null }),
+      ])
       return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 })
     }
 
-    await resetLimit(accountKey)
-    await audit(request, { sub: user.id, role: user.role, nome: user.nome, ver: user.session_version, exp: 0 }, {
-      action: 'login',
-      entity: 'auth',
-      entityId: user.id
-    })
+    await Promise.all([
+      resetLimit(accountKey),
+      audit(request, { sub: user.id, role: user.role, nome: user.nome, ver: user.session_version, exp: 0 }, {
+        action: 'login',
+        entity: 'auth',
+        entityId: user.id
+      }),
+    ])
 
     const response = NextResponse.json({
       user: { id: user.id, nome: user.nome, email: user.email, role: user.role },

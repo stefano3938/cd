@@ -29,7 +29,7 @@ Variáveis obrigatórias: ver `.env.example` (`NEXT_PUBLIC_SUPABASE_URL`, `SUPAB
 - `app/api/professor/*` — rotas de professor (admin também acessa)
 - `app/api/auth/*` — login/logout (públicas, com rate limit), `session` e `password` (exigem login)
 - `app/privacidade` — aviso de privacidade público (modelo; dados da igreja em `lib/lgpd/config.ts`)
-- `app/admin/lgpd` — auditoria, IPs bloqueados, anonimização de turma
+- `app/api/admin/audit`, `ip-blocks`, `turmas/[id]/anonymize` — auditoria, IPs bloqueados e anonimização (sem tela; consultar pelo Supabase ou pela API)
 - `lib/auth/` — sessão (cookie HMAC + `session_version` no banco), `requireRole`, `canAccessTurma`, `revokeSessions`, senhas (bcrypt)
 - `lib/security/rate-limit.ts` — rate limit e bloqueio de IP (funções SQL da migração 002)
 - `lib/security/audit.ts` — `audit(request, session, {...})` grava em `audit_log` (migração 003)

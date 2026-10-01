@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import AdminLayout from '@/components/admin/AdminLayout'
 import styles from '@/assets/css/admin.module.css'
 
 interface Course { id: string; nome: string }
@@ -117,7 +116,7 @@ export default function TurmasPage() {
   const dias = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
 
   return (
-    <AdminLayout>
+    <>
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <h2 className={styles.cardTitle}>Turmas</h2>
@@ -213,6 +212,6 @@ export default function TurmasPage() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   )
 }

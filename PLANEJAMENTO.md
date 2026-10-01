@@ -60,7 +60,7 @@ Nome, data de nascimento, e-mail, senha (mín. 8 caracteres), líder direto, ger
 - Next.js atualizado; dependência sem uso removida
 - Sessão revogável: excluir usuário, trocar senha ou perfil derruba as sessões na hora
 - Troca de senha pelo próprio usuário (admin e professor)
-- Tela "LGPD e Segurança": auditoria, IPs bloqueados (desbloquear), anonimização de turma
+- Auditoria, bloqueio de IP e anonimização de turma no backend (tela "LGPD e Segurança" removida em 30/09/2026 a pedido; operação pelo Supabase)
 - Cabeçalhos de segurança (CSP, HSTS, anti-iframe) e bloqueio de CSRF por Origin
 - Turma + professores salvos em transação (migração 004)
 - Testes automatizados (`npm test`): sessão, senhas, consentimento, entrada, middleware, revogação

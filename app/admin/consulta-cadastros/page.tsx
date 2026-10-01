@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import AdminLayout from '@/components/admin/AdminLayout'
 import styles from '@/assets/css/admin.module.css'
 import { Student, Turma } from '@/lib/supabase/types'
 import { calcularIdade, isMenor } from '@/lib/lgpd/config'
@@ -120,7 +119,7 @@ export default function ConsultaCadastros() {
   })
 
   return (
-    <AdminLayout>
+    <>
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <h2 className={styles.cardTitle}>Consulta de Cadastros</h2>
@@ -349,6 +348,6 @@ export default function ConsultaCadastros() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   )
 }

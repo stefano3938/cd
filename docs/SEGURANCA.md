@@ -51,7 +51,7 @@ Os limites ficam em `LIMITS` (`lib/security/rate-limit.ts`).
 
 ### Operação
 
-Pela tela **LGPD e Segurança → IPs bloqueados** (desbloquear mantém o histórico, então a escalada continua valendo). Ou pelo SQL Editor:
+Pelo SQL Editor do Supabase (não há tela no painel). O bloqueio expira sozinho; desbloquear mantém o histórico, então a escalada continua valendo:
 
 ```sql
 -- IPs bloqueados agora
@@ -91,7 +91,7 @@ Migrações a rodar, em ordem: `schema.sql` → `001_enable_rls.sql` → `002_ra
 ## Resposta a incidentes
 
 1. **Conter:** rotacionar `SUPABASE_SERVICE_ROLE_KEY` (Supabase → Settings → API) e `SESSION_SECRET` (Vercel → Env Vars → redeploy — derruba todas as sessões). Para um usuário só: trocar a senha dele (derruba as sessões). Bloquear IPs suspeitos em `ip_blocks`.
-2. **Investigar:** tela **LGPD e Segurança → Auditoria** (quem viu/exportou/alterou o quê), logs da Vercel e do Supabase. Identificar dados e titulares afetados.
+2. **Investigar:** tabela `audit_log` no Supabase (quem viu/exportou/alterou o quê), logs da Vercel e do Supabase. Identificar dados e titulares afetados.
 3. **Comunicar:** se houver risco ou dano relevante aos titulares, o controlador (igreja) comunica a ANPD e os titulares em prazo razoável (LGPD art. 48; a Resolução CD/ANPD nº 15/2024 fixa 3 dias úteis). Ver `docs/LGPD.md`.
 4. **Corrigir e registrar:** corrigir a causa, registrar o incidente (data, dados, titulares, medidas).
 

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import AdminLayout from '@/components/admin/AdminLayout'
 import styles from '@/assets/css/admin.module.css'
 
 interface Stats {
@@ -18,18 +17,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const [cursos, turmas, profs, alunos] = await Promise.all([
-          fetch('/api/admin/courses').then(r => r.json()),
-          fetch('/api/admin/turmas').then(r => r.json()),
-          fetch('/api/admin/professors').then(r => r.json()),
-          fetch('/api/admin/students').then(r => r.json())
-        ])
-        setStats({
-          cursos: cursos.length || 0,
-          turmas: turmas.length || 0,
-          professores: profs.length || 0,
-          alunos: alunos.length || 0
-        })
+        const res = await fetch('/api/admin/stats')
+        if (res.ok) setStats(await res.json())
       } catch (e) {
         console.error(e)
       } finally {
@@ -40,7 +29,7 @@ export default function AdminDashboard() {
   }, [])
 
   return (
-    <AdminLayout>
+    <>
       {loading ? (
         <div className={styles.loading}>Carregando...</div>
       ) : (
@@ -63,6 +52,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   )
 }

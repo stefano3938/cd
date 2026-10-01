@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import AdminLayout from '@/components/admin/AdminLayout'
 import styles from '@/assets/css/admin.module.css'
 import { Student, Turma } from '@/lib/supabase/types'
 import { calcularIdade, isMenor } from '@/lib/lgpd/config'
@@ -138,7 +137,7 @@ export default function Matriculas() {
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <h2 className={styles.cardTitle}>Matrículas de Alunos</h2>
@@ -387,6 +386,6 @@ export default function Matriculas() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   )
 }

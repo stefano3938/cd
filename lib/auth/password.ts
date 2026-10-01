@@ -4,12 +4,10 @@ import { timingSafeEqual } from 'crypto'
 const BCRYPT_ROUNDS = 12
 export const MIN_PASSWORD_LENGTH = 8
 
-// Hash usado quando o usuário não existe, para o tempo de resposta não revelar e-mails cadastrados
-let dummyHash: Promise<string> | null = null
-function getDummyHash() {
-  dummyHash ??= bcrypt.hash('dummy-password', BCRYPT_ROUNDS)
-  return dummyHash
-}
+// Hash usado quando o usuário não existe, para o tempo de resposta não revelar e-mails cadastrados.
+// Fixo (custo 12, de um segredo aleatório descartado) para não gastar um bcrypt.hash extra
+// a cada instância nova na Vercel. Se mudar BCRYPT_ROUNDS, gere outro com o mesmo custo.
+const DUMMY_HASH = '$2b$12$TyHKSsfk3BxVCzcrXGj23udgyGP7Lla2lyv2iTvRJnKzLfXyRY40C'
 
 export function validatePassword(password: unknown): string | null {
   if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
@@ -28,7 +26,7 @@ export function isBcryptHash(hash: string) {
 
 export async function verifyPassword(password: string, hash: string | null | undefined) {
   if (!hash || !isBcryptHash(hash)) {
-    await bcrypt.compare(password, await getDummyHash())
+    await bcrypt.compare(password, DUMMY_HASH)
     return false
   }
   return bcrypt.compare(password, hash)

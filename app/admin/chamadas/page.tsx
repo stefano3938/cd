@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import AdminLayout from '@/components/admin/AdminLayout'
 import styles from '@/assets/css/admin.module.css'
 import { Turma, Student, Class } from '@/lib/supabase/types'
 
@@ -151,7 +150,7 @@ export default function CadernetaChamadas() {
   const absentCount = attendance.filter(a => a.status === 'falta').length
 
   return (
-    <AdminLayout>
+    <>
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <h2 className={styles.cardTitle}>Caderneta de Chamadas</h2>
@@ -282,6 +281,6 @@ export default function CadernetaChamadas() {
           </>
         )}
       </div>
-    </AdminLayout>
+    </>
   )
 }

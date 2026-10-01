@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import AdminLayout from '@/components/admin/AdminLayout'
 import styles from '@/assets/css/admin.module.css'
 import { User } from '@/lib/supabase/types'
 
@@ -113,7 +112,7 @@ export default function CadastroUsuarios() {
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <h2 className={styles.cardTitle}>Cadastro de Usuários</h2>
@@ -300,6 +299,6 @@ export default function CadastroUsuarios() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   )
 }
