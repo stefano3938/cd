@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { requireRole } from '@/lib/auth/guard'
-import { serverError } from '@/lib/api/errors'
+import { conflict, isForeignKeyViolation, serverError } from '@/lib/api/errors'
+import { audit } from '@/lib/security/audit'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireRole('admin')
@@ -38,11 +39,25 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   const { id } = await params
 
+  // Excluir a turma apagaria os alunos e as presenças (antes da migração 006). Só turma vazia.
+  const { count, error: countError } = await supabase
+    .from('students')
+    .select('id', { count: 'exact', head: true })
+    .eq('turma_id', id)
+  if (countError) return serverError('turmas.delete', countError)
+  if (count) {
+    return conflict(`A turma tem ${count} aluno(s). Mova os alunos para outra turma ou exclua-os antes de excluir a turma.`)
+  }
+
   const { error } = await supabase
     .from('turmas')
     .delete()
     .eq('id', id)
 
-  if (error) return serverError('turmas.delete', error)
+  if (error) {
+    if (isForeignKeyViolation(error)) return conflict('A turma ainda tem alunos vinculados.')
+    return serverError('turmas.delete', error)
+  }
+  await audit(request, session, { action: 'delete', entity: 'turma', entityId: id })
   return NextResponse.json({ success: true })
 }

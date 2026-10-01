@@ -39,5 +39,5 @@ Revise as mudanças (ex.: `git diff main...HEAD`) contra os itens abaixo. Report
 - Função SQL nova → `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated` e `GRANT ... TO service_role`.
 
 ## Dependências
-- `next` permanece em versão sem CVEs conhecidas (≥ 14.2.32 ou 15.x atualizado).
+- `next` permanece em versão sem CVEs conhecidas (≥ 15.5.27; a linha 14 não recebe mais correções). Rodar `npm audit --omit=dev`.
 - Dependência nova é realmente usada e de fonte confiável.

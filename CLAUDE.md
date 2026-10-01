@@ -6,7 +6,7 @@ Sistema de controle do curso "Capacitação Destino" da igreja: cadastro de turm
 
 ## Stack
 
-- Next.js 14 (App Router) + TypeScript + React 18
+- Next.js 15.5 (App Router) + TypeScript + React 19
 - Supabase (Postgres) acessado **somente pelo servidor** com a service role key
 - CSS Modules em `assets/css/` (Tailwind só para utilitários)
 - Deploy: Vercel (serverless — nada de estado em memória entre requisições)
@@ -45,7 +45,7 @@ Variáveis obrigatórias: ver `.env.example` (`NEXT_PUBLIC_SUPABASE_URL`, `SUPAB
 ## Regras obrigatórias
 
 ### Segurança
-- **Toda rota de API nova começa com `requireRole`** — o middleware não basta (houve CVE de bypass de middleware no Next 14):
+- **Toda rota de API nova começa com `requireRole`** — o middleware não basta (já houve CVE de bypass de middleware no Next):
   ```ts
   const session = await requireRole('admin')
   if (session instanceof NextResponse) return session

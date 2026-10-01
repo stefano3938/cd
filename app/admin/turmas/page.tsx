@@ -99,8 +99,13 @@ export default function TurmasPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Excluir turma?')) return
-    await fetch(`/api/admin/turmas/${id}`, { method: 'DELETE' })
+    if (!confirm('Excluir turma? Só é possível excluir turma sem alunos.')) return
+    const res = await fetch(`/api/admin/turmas/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error || 'Erro ao excluir turma')
+      return
+    }
     load()
   }
 

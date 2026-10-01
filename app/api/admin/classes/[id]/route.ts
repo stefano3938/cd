@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { requireRole } from '@/lib/auth/guard'
-import { serverError } from '@/lib/api/errors'
+import { conflict, isForeignKeyViolation, serverError } from '@/lib/api/errors'
+import { audit } from '@/lib/security/audit'
 
 export async function GET(
   request: NextRequest,
@@ -54,11 +55,23 @@ export async function DELETE(
 
   const { id } = await params
 
+  // Excluir a aula apagaria as presenças já registradas nela
+  const { count, error: countError } = await supabase
+    .from('attendance')
+    .select('id', { count: 'exact', head: true })
+    .eq('class_id', id)
+  if (countError) return serverError('classes.delete', countError)
+  if (count) return conflict(`A aula tem ${count} registro(s) de chamada e não pode ser excluída.`)
+
   const { error } = await supabase
     .from('classes')
     .delete()
     .eq('id', id)
 
-  if (error) return serverError('classes.delete', error)
+  if (error) {
+    if (isForeignKeyViolation(error)) return conflict('A aula tem chamada registrada.')
+    return serverError('classes.delete', error)
+  }
+  await audit(request, session, { action: 'delete', entity: 'class', entityId: id })
   return NextResponse.json({ success: true })
 }

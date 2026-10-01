@@ -7,7 +7,8 @@ export type AuditAction =
   | 'create' | 'update' | 'delete' | 'view' | 'export' | 'anonymize' | 'consent'
   | 'login' | 'login_failed' | 'password_change' | 'unblock_ip'
 
-export type AuditEntity = 'student' | 'user' | 'attendance' | 'turma' | 'auth' | 'ip_block'
+export type AuditEntity =
+  | 'student' | 'user' | 'attendance' | 'turma' | 'course' | 'module' | 'class' | 'auth' | 'ip_block'
 
 interface AuditEntry {
   action: AuditAction

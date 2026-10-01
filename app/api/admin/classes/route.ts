@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { requireRole } from '@/lib/auth/guard'
 import { serverError } from '@/lib/api/errors'
+import { fetchAll } from '@/lib/supabase/fetch-all'
 
 export async function GET(request: NextRequest) {
   const session = await requireRole('admin')
@@ -10,16 +11,17 @@ export async function GET(request: NextRequest) {
   const module_id = request.nextUrl.searchParams.get('module_id')
 
   // Sem module_id retorna todas as aulas (usado pela Caderneta de Chamadas)
-  let query = supabase
-    .from('classes')
-    .select('*')
-    .order('ordem')
+  const { data, error } = await fetchAll((from, to) => {
+    let query = supabase
+      .from('classes')
+      .select('*')
+      .order('ordem')
+      .order('id')
+      .range(from, to)
 
-  if (module_id) {
-    query = query.eq('module_id', module_id)
-  }
-
-  const { data, error } = await query
+    if (module_id) query = query.eq('module_id', module_id)
+    return query
+  })
 
   if (error) return serverError('classes.list', error)
   return NextResponse.json(data)

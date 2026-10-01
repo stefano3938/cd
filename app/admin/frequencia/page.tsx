@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { formatarData } from '@/lib/datas'
 import styles from '@/assets/css/admin.module.css'
 import { Turma, Student } from '@/lib/supabase/types'
 
@@ -58,16 +59,13 @@ export default function ControleFrequencia() {
       setLoading(true)
       const [studentsRes, attendanceRes] = await Promise.all([
         fetch(`/api/admin/students?turma_id=${selectedTurma}`),
-        fetch('/api/admin/attendance')
+        fetch(`/api/admin/attendance?turma_id=${selectedTurma}`)
       ])
 
       if (studentsRes.ok && attendanceRes.ok) {
         const students: Student[] = await studentsRes.json()
-        const allAttendance: AttendanceData[] = await attendanceRes.json()
-
-        // Filtra attendance apenas dos alunos da turma
-        const studentIds = new Set(students.map(s => s.id))
-        const filteredAttendance = allAttendance.filter(a => studentIds.has(a.student_id))
+        // O servidor já filtra pela turma (e busca todas as páginas, sem o corte de 1000 linhas)
+        const filteredAttendance: AttendanceData[] = await attendanceRes.json()
         setAttendanceData(filteredAttendance)
 
         // Calcula frequência por aluno
@@ -248,7 +246,7 @@ export default function ControleFrequencia() {
                   <tbody>
                     {attendanceData.map(record => (
                       <tr key={record.id}>
-                        <td>{record.classes?.data_aula ? new Date(record.classes.data_aula).toLocaleDateString('pt-BR') : '-'}</td>
+                        <td>{record.classes?.data_aula ? formatarData(record.classes.data_aula) : '-'}</td>
                         <td>{record.classes?.titulo || '-'}</td>
                         <td>{record.students?.nome || '-'}</td>
                         <td style={{ textAlign: 'center' }}>

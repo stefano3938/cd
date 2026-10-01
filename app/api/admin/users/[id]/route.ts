@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase/client'
 import { requireRole, revokeSessions } from '@/lib/auth/guard'
 import { audit } from '@/lib/security/audit'
 import { hashPassword, validatePassword } from '@/lib/auth/password'
-import { isUniqueViolation, serverError } from '@/lib/api/errors'
+import { conflict, isMissingFunction, isUniqueViolation, MIGRACAO_006_PENDENTE, serverError } from '@/lib/api/errors'
 import { USER_PUBLIC_COLUMNS, VALID_ROLES } from '@/lib/auth/users'
 
 // Somente estes campos podem ser alterados via API (evita mass assignment de password_hash, id etc.)
@@ -102,12 +102,14 @@ export async function DELETE(
     return NextResponse.json({ error: 'Você não pode excluir o próprio usuário' }, { status: 400 })
   }
 
-  const { error } = await supabase
-    .from('users')
-    .delete()
-    .eq('id', id)
+  // Função da migração 006: com ela, as chamadas marcadas pelo usuário são mantidas
+  const { data: excluidos, error } = await supabase.rpc('excluir_usuario', { p_user_id: id })
 
-  if (error) return serverError('users.delete', error)
+  if (error) {
+    if (isMissingFunction(error)) return conflict(MIGRACAO_006_PENDENTE)
+    return serverError('users.delete', error)
+  }
+  if (!excluidos) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
   await audit(request, session, { action: 'delete', entity: 'user', entityId: id })
   return NextResponse.json({ success: true })
 }

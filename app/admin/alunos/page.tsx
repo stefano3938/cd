@@ -86,8 +86,13 @@ export default function AlunosPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Excluir aluno?')) return
-    await fetch(`/api/admin/students/${id}`, { method: 'DELETE' })
+    if (!confirm('Excluir aluno? Os dados dele e todas as presenças serão apagados definitivamente.')) return
+    const res = await fetch(`/api/admin/students/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error || 'Erro ao excluir aluno')
+      return
+    }
     load()
   }
 

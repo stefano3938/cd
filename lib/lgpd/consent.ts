@@ -20,6 +20,26 @@ type ConsentResult = { error: string; fields: null } | { error: null; fields: Co
 
 const fail = (error: string): ConsentResult => ({ error, fields: null })
 
+// Campos do aluno que o admin pode corrigir (LGPD art. 18, III). Consentimento tem rota própria.
+export const STUDENT_EDITABLE_FIELDS = [
+  'nome', 'email', 'telefone', 'turma_id', 'data_nascimento',
+  'nome_responsavel', 'telefone_responsavel',
+  'nome_lider_direto', 'geracao', 'telefone_lider_direto',
+] as const
+
+// Depois de corrigir dados, o consentimento já registrado continua válido?
+// Menor precisa de consentimento do responsável (art. 14), e consentimento do responsável exige o nome dele.
+export function consentNeedsRenewal(s: {
+  titular: string | null
+  data_nascimento: string | null
+  nome_responsavel: string | null
+}) {
+  if (!s.titular) return false
+  if (s.titular === 'aluno' && isMenor(s.data_nascimento)) return true
+  if (s.titular === 'responsavel' && !s.nome_responsavel) return true
+  return false
+}
+
 // Valida o consentimento informado pelo admin (coletado no papel/presencialmente ou pelo formulário).
 // Menor de idade: consentimento do responsável (LGPD art. 14).
 export function buildConsent(input: ConsentInput, registradoPor: string): ConsentResult {

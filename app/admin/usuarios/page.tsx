@@ -90,12 +90,15 @@ export default function CadastroUsuarios() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Tem certeza que deseja excluir este usuário?')) return
+    if (!confirm('Tem certeza que deseja excluir este usuário? As chamadas que ele já fez continuam registradas.')) return
 
     try {
       const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' })
       if (res.ok) {
         loadUsers()
+      } else {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error || 'Erro ao excluir usuário')
       }
     } catch (e) {
       console.error(e)

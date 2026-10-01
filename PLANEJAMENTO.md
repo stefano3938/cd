@@ -64,7 +64,7 @@ Nome, data de nascimento, e-mail, senha (mín. 8 caracteres), líder direto, ger
 - Cabeçalhos de segurança (CSP, HSTS, anti-iframe) e bloqueio de CSRF por Origin
 - Turma + professores salvos em transação (migração 004)
 - Testes automatizados (`npm test`): sessão, senhas, consentimento, entrada, middleware, revogação
-- ESLint no formato compatível com Next 14 (`.eslintrc.json`)
+- ESLint no formato `.eslintrc.json` (compatível com Next 14 e 15)
 - CI no GitHub Actions (`.github/workflows/ci.yml`): lint, testes e build a cada push/PR
 
 **LGPD** (detalhes em `docs/LGPD.md`)
@@ -85,7 +85,8 @@ Nome, data de nascimento, e-mail, senha (mín. 8 caracteres), líder direto, ger
 - [x] Configurar as mesmas variáveis na Vercel
 - [x] `npm install` (atualiza Next e lockfile)
 - [x] Rodar migrações `001` a `004` em ordem (todas obrigatórias) — conferido em 27/09/2026: RLS ativo, acesso anônimo bloqueado, funções e colunas criadas
-- [ ] Rodar migração `005_indices.sql` (ajuste de índices; não urgente)
+- [x] Rodar migração `005_indices.sql` — 30/09/2026, índices conferidos
+- [x] Rodar migração `006_protege_exclusoes.sql` — 30/09/2026, regras de exclusão conferidas (SET NULL / RESTRICT)
 - [x] `npm install`, `npm test`, `npm run lint` e `npm run build`
 - [x] Apagar `eslint.config.mjs` (substituído por `.eslintrc.json`)
 - [ ] Criar admin com `scripts/create-admin.mjs`; remover/trocar senha de `admin@capacitacao.com`

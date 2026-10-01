@@ -30,11 +30,11 @@ async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   return res.json() as Promise<T>
 }
 
-// Na Vercel, request.ip e x-forwarded-for são definidos pela plataforma (não pelo cliente).
-// Fora da Vercel, confirme que o proxy sobrescreve x-forwarded-for; senão o IP pode ser forjado.
+// Na Vercel, x-real-ip e x-forwarded-for são definidos pela plataforma (o valor do cliente é sobrescrito).
+// O Next 15 removeu request.ip; esses cabeçalhos são a fonte equivalente.
+// Fora da Vercel, confirme que o proxy sobrescreve esses cabeçalhos; senão o IP pode ser forjado.
 export function getClientIp(request: NextRequest) {
   return (
-    request.ip ||
     request.headers.get('x-real-ip') ||
     request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
     'unknown'

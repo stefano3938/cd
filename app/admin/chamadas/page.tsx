@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { formatarData } from '@/lib/datas'
 import styles from '@/assets/css/admin.module.css'
 import { Turma, Student, Class } from '@/lib/supabase/types'
 
@@ -191,7 +192,7 @@ export default function CadernetaChamadas() {
                 <option value="">Selecione uma aula</option>
                 {classes.map(cls => (
                   <option key={cls.id} value={cls.id}>
-                    {cls.titulo} {cls.data_aula ? `- ${new Date(cls.data_aula).toLocaleDateString('pt-BR')}` : ''}
+                    {cls.titulo} {cls.data_aula ? `- ${formatarData(cls.data_aula)}` : ''}
                   </option>
                 ))}
               </select>

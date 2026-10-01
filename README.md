@@ -19,7 +19,7 @@ Sistema de gerenciamento para o curso Capacitação Destino da igreja.
 
 ## Stack Tecnológica
 
-- **Next.js 14** - Framework React com App Router
+- **Next.js 15.5** - Framework React com App Router (React 19)
 - **TypeScript** - Tipagem estática
 - **Supabase** - Banco de dados e autenticação
 - **CSS Modules** - Estilização

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { formatarData } from '@/lib/datas'
 import styles from '@/assets/css/admin.module.css'
 import { Student, Turma } from '@/lib/supabase/types'
 import { calcularIdade, isMenor } from '@/lib/lgpd/config'
@@ -226,7 +227,7 @@ export default function ConsultaCadastros() {
                     <span style={{ fontWeight: 600, color: 'var(--gray-600)' }}>Data de Nascimento:</span>
                     <p style={{ margin: '5px 0' }}>
                       {selectedStudent.data_nascimento
-                        ? new Date(selectedStudent.data_nascimento).toLocaleDateString('pt-BR')
+                        ? formatarData(selectedStudent.data_nascimento)
                         : '-'}
                     </p>
                   </div>

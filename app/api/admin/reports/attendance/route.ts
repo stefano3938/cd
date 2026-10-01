@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { requireRole } from '@/lib/auth/guard'
 import { serverError } from '@/lib/api/errors'
+import { fetchAll } from '@/lib/supabase/fetch-all'
 
 export async function GET(request: NextRequest) {
   const session = await requireRole('admin')
@@ -26,11 +27,15 @@ export async function GET(request: NextRequest) {
   // Se turma específica, buscar detalhes
   if (turma_id) {
     // Buscar alunos da turma
-    const { data: students, error: studentsError } = await supabase
-      .from('students')
-      .select('id, nome')
-      .eq('turma_id', turma_id)
-      .order('nome')
+    const { data: students, error: studentsError } = await fetchAll<{ id: string; nome: string }>((from, to) =>
+      supabase
+        .from('students')
+        .select('id, nome')
+        .eq('turma_id', turma_id)
+        .order('nome')
+        .order('id')
+        .range(from, to)
+    )
 
     if (studentsError) return serverError('reports.students', studentsError)
 
@@ -48,12 +53,17 @@ export async function GET(request: NextRequest) {
       .eq('course_id', turma?.course_id)
       .order('ordem')
 
-    // Buscar todas as presenças dos alunos desta turma
-    const studentIds = students?.map(s => s.id) || []
-    const { data: attendance } = await supabase
-      .from('attendance')
-      .select('student_id, class_id, status')
-      .in('student_id', studentIds)
+    // Todas as presenças dos alunos desta turma. Paginado: alunos × aulas passa fácil de 1000 linhas,
+    // e o Supabase cortaria o resultado sem erro (percentuais errados).
+    const { data: attendance, error: attendanceError } = await fetchAll((from, to) =>
+      supabase
+        .from('attendance')
+        .select('student_id, class_id, status, students!inner(turma_id)')
+        .eq('students.turma_id', turma_id)
+        .order('id')
+        .range(from, to)
+    )
+    if (attendanceError) return serverError('reports.attendance', attendanceError)
 
     // Organizar aulas
     const allClasses: { id: string; titulo: string; module: string }[] = []

@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/auth/guard'
 import { serverError } from '@/lib/api/errors'
 import { audit } from '@/lib/security/audit'
 import { buildConsent } from '@/lib/lgpd/consent'
+import { fetchAll } from '@/lib/supabase/fetch-all'
 
 export async function GET(request: NextRequest) {
   const session = await requireRole('admin')
@@ -11,16 +12,18 @@ export async function GET(request: NextRequest) {
 
   const turma_id = request.nextUrl.searchParams.get('turma_id')
 
-  let query = supabase
-    .from('students')
-    .select('*, turmas(nome)')
-    .order('nome')
+  // Paginado: acima de 1000 alunos o Supabase cortaria a lista sem erro
+  const { data, error } = await fetchAll((from, to) => {
+    let query = supabase
+      .from('students')
+      .select('*, turmas(nome)')
+      .order('nome')
+      .order('id')
+      .range(from, to)
 
-  if (turma_id) {
-    query = query.eq('turma_id', turma_id)
-  }
-
-  const { data, error } = await query
+    if (turma_id) query = query.eq('turma_id', turma_id)
+    return query
+  })
 
   if (error) return serverError('students.list', error)
   await audit(request, session, {

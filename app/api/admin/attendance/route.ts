@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/auth/guard'
 import { serverError } from '@/lib/api/errors'
 import { parseAttendance } from '@/lib/api/attendance'
 import { audit } from '@/lib/security/audit'
+import { fetchAll } from '@/lib/supabase/fetch-all'
 
 export async function GET(request: NextRequest) {
   const session = await requireRole('admin')
@@ -11,21 +12,22 @@ export async function GET(request: NextRequest) {
 
   const class_id = request.nextUrl.searchParams.get('class_id')
   const student_id = request.nextUrl.searchParams.get('student_id')
+  const turma_id = request.nextUrl.searchParams.get('turma_id')
 
-  let query = supabase
-    .from('attendance')
-    .select('*, students(nome), classes(titulo)')
-    .order('marked_at', { ascending: false })
+  // Busca paginada: sem isso o Supabase corta em 1000 linhas e a frequência sai errada
+  const { data, error } = await fetchAll((from, to) => {
+    let query = supabase
+      .from('attendance')
+      .select('id, student_id, class_id, status, marked_at, students!inner(nome, turma_id), classes(titulo, data_aula)')
+      .order('marked_at', { ascending: false })
+      .order('id')
+      .range(from, to)
 
-  if (class_id) {
-    query = query.eq('class_id', class_id)
-  }
-
-  if (student_id) {
-    query = query.eq('student_id', student_id)
-  }
-
-  const { data, error } = await query
+    if (class_id) query = query.eq('class_id', class_id)
+    if (student_id) query = query.eq('student_id', student_id)
+    if (turma_id) query = query.eq('students.turma_id', turma_id)
+    return query
+  })
 
   if (error) return serverError('attendance.list', error)
   return NextResponse.json(data)

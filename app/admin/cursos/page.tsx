@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { formatarData } from '@/lib/datas'
 import styles from '@/assets/css/admin.module.css'
 
 interface Class {
@@ -90,8 +91,13 @@ export default function CursosPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Excluir curso e todos seus módulos?')) return
-    await fetch(`/api/admin/courses/${id}`, { method: 'DELETE' })
+    if (!confirm('Excluir curso com todos os módulos e aulas? Só é possível se o curso não tiver turmas nem chamadas.')) return
+    const res = await fetch(`/api/admin/courses/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error || 'Erro ao excluir curso')
+      return
+    }
     load()
   }
 
@@ -142,8 +148,13 @@ export default function CursosPage() {
   }
 
   async function handleDeleteModule(id: string) {
-    if (!confirm('Excluir módulo e suas aulas?')) return
-    await fetch(`/api/admin/modules/${id}`, { method: 'DELETE' })
+    if (!confirm('Excluir módulo e suas aulas? Só é possível se nenhuma aula tiver chamada.')) return
+    const res = await fetch(`/api/admin/modules/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error || 'Erro ao excluir módulo')
+      return
+    }
     load()
     const updated = await fetch(`/api/admin/courses/${selectedCourse?.id}`).then(r => r.json())
     setSelectedCourse(updated)
@@ -207,8 +218,13 @@ export default function CursosPage() {
   }
 
   async function handleDeleteClass(id: string) {
-    if (!confirm('Excluir aula?')) return
-    await fetch(`/api/admin/classes/${id}`, { method: 'DELETE' })
+    if (!confirm('Excluir aula? Só é possível se ela não tiver chamada.')) return
+    const res = await fetch(`/api/admin/classes/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error || 'Erro ao excluir aula')
+      return
+    }
     if (selectedModule) {
       const updated = await fetch(`/api/admin/classes?module_id=${selectedModule.id}`).then(r => r.json())
       setClasses(updated)
@@ -321,7 +337,7 @@ export default function CursosPage() {
                   <tr key={c.id}>
                     <td>{c.ordem}</td>
                     <td>{c.titulo}</td>
-                    <td>{c.data_aula ? new Date(c.data_aula).toLocaleDateString('pt-BR') : '-'}</td>
+                    <td>{c.data_aula ? formatarData(c.data_aula) : '-'}</td>
                     <td className={styles.actions}>
                       <button className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`} onClick={() => openEditClass(c)}>Editar</button>
                       <button className={`${styles.btn} ${styles.btnDanger} ${styles.btnSmall}`} onClick={() => handleDeleteClass(c.id)}>Excluir</button>

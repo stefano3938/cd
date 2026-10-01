@@ -87,6 +87,6 @@ export interface Attendance {
   student_id: string
   class_id: string
   status: AttendanceStatus
-  marked_by: string
+  marked_by: string | null  // null se quem marcou foi excluído (migração 006)
   marked_at: string
 }

@@ -41,15 +41,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push('/login')
   }
 
-  const navItems = [
-    { href: '/admin/dashboard', label: 'Dashboard' },
-    { href: '/admin/usuarios', label: 'Cadastro de Usuários' },
-    { href: '/admin/matriculas', label: 'Matrículas' },
-    { href: '/admin/chamadas', label: 'Caderneta de Chamadas' },
-    { href: '/admin/frequencia', label: 'Controle de Frequência' },
-    { href: '/admin/consulta-cadastros', label: 'Consulta de Cadastros' },
-    { href: '/admin/consulta-turmas', label: 'Consulta de Turmas' },
+  const navGroups = [
+    { title: null, items: [
+      { href: '/admin/dashboard', label: 'Dashboard' },
+    ]},
+    { title: 'Curso', items: [
+      { href: '/admin/cursos', label: 'Cursos e Aulas' },
+      { href: '/admin/turmas', label: 'Turmas' },
+    ]},
+    { title: 'Cadastros', items: [
+      { href: '/admin/usuarios', label: 'Usuários' },
+      { href: '/admin/matriculas', label: 'Matrículas' },
+      { href: '/admin/alunos', label: 'Alunos e Importação' },
+    ]},
+    { title: 'Chamada', items: [
+      { href: '/admin/chamadas', label: 'Caderneta de Chamadas' },
+      { href: '/admin/frequencia', label: 'Controle de Frequência' },
+      { href: '/admin/relatorios', label: 'Relatórios' },
+    ]},
+    { title: 'Consultas', items: [
+      { href: '/admin/consulta-cadastros', label: 'Consulta de Cadastros' },
+      { href: '/admin/consulta-turmas', label: 'Consulta de Turmas' },
+    ]},
   ]
+  const navItems = navGroups.flatMap(g => g.items)
 
   // O conteúdo aparece sem esperar a consulta da sessão: a página já é protegida pelo
   // middleware e cada rota de API valida a sessão (requireRole). Só o nome aguarda.
@@ -58,14 +73,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className={styles.sidebar}>
         <div className={styles.logo}>Capacitação</div>
         <nav className={styles.nav}>
-          {navItems.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`${styles.navLink} ${pathname === item.href ? styles.navLinkActive : ''}`}
-            >
-              {item.label}
-            </Link>
+          {navGroups.map(group => (
+            <div key={group.title ?? 'inicio'} className={styles.navGroup}>
+              {group.title && <div className={styles.navGroupTitle}>{group.title}</div>}
+              {group.items.map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`${styles.navLink} ${pathname === item.href ? styles.navLinkActive : ''}`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
           ))}
         </nav>
       </aside>

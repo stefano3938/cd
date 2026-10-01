@@ -6,7 +6,7 @@ import { Role, Session, SESSION_COOKIE, verifySessionToken } from './session'
 // Valida assinatura do cookie e confere no banco: usuário ainda existe, perfil atual e versão da sessão.
 // Assim, excluir um usuário, mudar o perfil ou trocar a senha derruba as sessões abertas na hora.
 export async function getSession(): Promise<Session | null> {
-  const token = await verifySessionToken(cookies().get(SESSION_COOKIE)?.value)
+  const token = await verifySessionToken((await cookies()).get(SESSION_COOKIE)?.value)
   if (!token) return null
 
   const { data: user } = await supabase

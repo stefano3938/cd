@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { requireRole } from '@/lib/auth/guard'
-import { serverError } from '@/lib/api/errors'
+import { conflict, isForeignKeyViolation, serverError } from '@/lib/api/errors'
+import { audit } from '@/lib/security/audit'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireRole('admin')
@@ -28,11 +29,23 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   const { id } = await params
 
+  // Excluir o módulo apagaria as aulas e, com elas, as presenças já registradas
+  const { count, error: countError } = await supabase
+    .from('attendance')
+    .select('id, classes!inner(module_id)', { count: 'exact', head: true })
+    .eq('classes.module_id', id)
+  if (countError) return serverError('modules.delete', countError)
+  if (count) return conflict('O módulo tem aulas com chamada registrada e não pode ser excluído.')
+
   const { error } = await supabase
     .from('modules')
     .delete()
     .eq('id', id)
 
-  if (error) return serverError('modules.delete', error)
+  if (error) {
+    if (isForeignKeyViolation(error)) return conflict('O módulo tem aulas com chamada registrada.')
+    return serverError('modules.delete', error)
+  }
+  await audit(request, session, { action: 'delete', entity: 'module', entityId: id })
   return NextResponse.json({ success: true })
 }

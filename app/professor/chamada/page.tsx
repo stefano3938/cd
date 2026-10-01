@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatarData } from '@/lib/datas'
 import styles from '@/assets/css/professor.module.css'
 import ChangePasswordModal from '@/components/ChangePasswordModal'
 
@@ -292,7 +293,7 @@ export default function ProfessorChamada() {
                                 </div>
                                 {c.data_aula && (
                                   <div className={styles.classDate}>
-                                    {new Date(c.data_aula).toLocaleDateString('pt-BR')}
+                                    {formatarData(c.data_aula)}
                                   </div>
                                 )}
                               </div>

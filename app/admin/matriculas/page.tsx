@@ -40,6 +40,8 @@ export default function Matriculas() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialFormData)
+  // null = nova matrícula; id = corrigindo os dados de um aluno já matriculado
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -83,12 +85,44 @@ export default function Matriculas() {
 
   const menor = isMenor(formData.data_nascimento)
 
+  function openNew() {
+    setEditingId(null)
+    setFormData(initialFormData)
+    setError('')
+    setShowModal(true)
+  }
+
+  function openEdit(student: Student) {
+    setEditingId(student.id)
+    setFormData({
+      ...initialFormData,
+      nome: student.nome,
+      data_nascimento: student.data_nascimento ?? '',
+      email: student.email ?? '',
+      nome_responsavel: student.nome_responsavel ?? '',
+      telefone_responsavel: student.telefone_responsavel ?? '',
+      nome_lider_direto: student.nome_lider_direto ?? '',
+      geracao: student.geracao ?? '',
+      telefone_lider_direto: student.telefone_lider_direto ?? '',
+      turma_id: student.turma_id,
+    })
+    setError('')
+    setSuccess('')
+    setShowModal(true)
+  }
+
+  function closeModal() {
+    setShowModal(false)
+    setEditingId(null)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setSuccess('')
 
-    if (!formData.consentimento_confirmado || !formData.consentimento_titular) {
+    // Consentimento só na matrícula nova; para aluno já matriculado é registrado em Consulta de Cadastros
+    if (!editingId && (!formData.consentimento_confirmado || !formData.consentimento_titular)) {
       setError('Registre o consentimento para concluir a matrícula')
       return
     }
@@ -96,35 +130,51 @@ export default function Matriculas() {
     setSaving(true)
 
     try {
-      const res = await fetch('/api/admin/students', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
+      const { consentimento_titular, consentimento_confirmado, ...dados } = formData
+      const res = editingId
+        ? await fetch(`/api/admin/students/${editingId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+          })
+        : await fetch('/api/admin/students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...dados, consentimento_titular, consentimento_confirmado })
+          })
 
+      const data = await res.json().catch(() => ({}))
       if (res.ok) {
-        setSuccess('Aluno matriculado com sucesso!')
+        setSuccess(
+          !editingId
+            ? 'Aluno matriculado com sucesso!'
+            : data.consentimento_resetado
+              ? 'Dados corrigidos. Com a correção, o consentimento registrado deixou de valer: registre um novo em Consulta de Cadastros.'
+              : 'Dados do aluno corrigidos.'
+        )
         setFormData(initialFormData)
-        setShowModal(false)
+        closeModal()
         loadData()
       } else {
-        const data = await res.json()
-        setError(data.error || 'Erro ao matricular aluno')
+        setError(data.error || (editingId ? 'Erro ao salvar alterações' : 'Erro ao matricular aluno'))
       }
     } catch {
-      setError('Erro ao matricular aluno')
+      setError(editingId ? 'Erro ao salvar alterações' : 'Erro ao matricular aluno')
     } finally {
       setSaving(false)
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Tem certeza que deseja excluir esta matrícula?')) return
+    if (!confirm('Excluir esta matrícula? Os dados do aluno e todas as presenças dele serão apagados definitivamente.')) return
 
     try {
       const res = await fetch(`/api/admin/students/${id}`, { method: 'DELETE' })
       if (res.ok) {
         loadData()
+      } else {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error || 'Erro ao excluir matrícula')
       }
     } catch (e) {
       console.error(e)
@@ -143,7 +193,7 @@ export default function Matriculas() {
           <h2 className={styles.cardTitle}>Matrículas de Alunos</h2>
           <button
             className={`${styles.btn} ${styles.btnPrimary}`}
-            onClick={() => setShowModal(true)}
+            onClick={openNew}
           >
             Nova Matrícula
           </button>
@@ -177,6 +227,14 @@ export default function Matriculas() {
                   <td>{getTurmaLabel(student.turma_id)}</td>
                   <td>{student.geracao || '-'}</td>
                   <td className={styles.actions}>
+                    {!student.anonimizado_em && (
+                      <button
+                        className={`${styles.btn} ${styles.btnSecondary} ${styles.btnSmall}`}
+                        onClick={() => openEdit(student)}
+                      >
+                        Editar
+                      </button>
+                    )}
                     <button
                       className={`${styles.btn} ${styles.btnDanger} ${styles.btnSmall}`}
                       onClick={() => handleDelete(student.id)}
@@ -195,8 +253,8 @@ export default function Matriculas() {
         <div className={styles.modal}>
           <div className={styles.modalContent} style={{ maxWidth: '600px' }}>
             <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Nova Matrícula</h3>
-              <button className={styles.closeBtn} onClick={() => setShowModal(false)}>
+              <h3 className={styles.modalTitle}>{editingId ? 'Corrigir Dados do Aluno' : 'Nova Matrícula'}</h3>
+              <button className={styles.closeBtn} onClick={closeModal}>
                 &times;
               </button>
             </div>
@@ -332,6 +390,12 @@ export default function Matriculas() {
                 </select>
               </div>
 
+              {editingId ? (
+                <p className={styles.consentText}>
+                  O consentimento é registrado em <strong>Consulta de Cadastros</strong>. Se a correção mudar quem
+                  precisa autorizar (ex.: o aluno passou a ser menor de idade), o consentimento volta a ficar pendente.
+                </p>
+              ) : (
               <fieldset className={styles.consentBox}>
                 <legend className={styles.label}>Consentimento (LGPD) *</legend>
                 <p className={styles.consentText}>
@@ -365,12 +429,13 @@ export default function Matriculas() {
                   Confirmo que o consentimento foi obtido
                 </label>
               </fieldset>
+              )}
 
               <div className={styles.modalFooter}>
                 <button
                   type="button"
                   className={`${styles.btn} ${styles.btnSecondary}`}
-                  onClick={() => setShowModal(false)}
+                  onClick={closeModal}
                 >
                   Cancelar
                 </button>
@@ -379,7 +444,7 @@ export default function Matriculas() {
                   className={`${styles.btn} ${styles.btnPrimary}`}
                   disabled={saving}
                 >
-                  {saving ? 'Salvando...' : 'Matricular'}
+                  {saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Matricular'}
                 </button>
               </div>
             </form>

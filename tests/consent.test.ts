@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { buildConsent } from '@/lib/lgpd/consent'
+import { buildConsent, consentNeedsRenewal } from '@/lib/lgpd/consent'
 import { calcularIdade, isMenor, PRIVACY_POLICY_VERSION } from '@/lib/lgpd/config'
 
 describe('consentimento LGPD', () => {
@@ -72,5 +72,19 @@ describe('consentimento LGPD', () => {
       'admin1'
     )
     expect(r.error).toBeNull()
+  })
+
+  it('correção que torna o aluno menor invalida consentimento dado pelo próprio aluno', () => {
+    expect(consentNeedsRenewal({ titular: 'aluno', data_nascimento: menor, nome_responsavel: null })).toBe(true)
+    expect(consentNeedsRenewal({ titular: 'aluno', data_nascimento: adulto, nome_responsavel: null })).toBe(false)
+  })
+
+  it('apagar o responsável invalida consentimento dado pelo responsável', () => {
+    expect(consentNeedsRenewal({ titular: 'responsavel', data_nascimento: menor, nome_responsavel: null })).toBe(true)
+    expect(consentNeedsRenewal({ titular: 'responsavel', data_nascimento: menor, nome_responsavel: 'Maria' })).toBe(false)
+  })
+
+  it('aluno sem consentimento (pendente) não muda', () => {
+    expect(consentNeedsRenewal({ titular: null, data_nascimento: menor, nome_responsavel: null })).toBe(false)
   })
 })

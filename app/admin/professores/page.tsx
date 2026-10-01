@@ -65,8 +65,13 @@ export default function ProfessoresPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Excluir professor?')) return
-    await fetch(`/api/admin/professors/${id}`, { method: 'DELETE' })
+    if (!confirm('Excluir professor? As chamadas que ele já fez continuam registradas.')) return
+    const res = await fetch(`/api/admin/professors/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error || 'Erro ao excluir professor')
+      return
+    }
     load()
   }
 

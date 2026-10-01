@@ -1,3 +1,6 @@
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 const isDev = process.env.NODE_ENV !== 'production'
 
 // CSP: o App Router do Next 14 injeta scripts inline, então 'unsafe-inline' é necessário sem nonce.
@@ -26,6 +29,8 @@ const securityHeaders = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Raiz do projeto explícita: evita o Next escolher outro package-lock.json encontrado em pastas acima
+  outputFileTracingRoot: dirname(fileURLToPath(import.meta.url)),
   poweredByHeader: false,
   async headers() {
     return [

@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase/client'
 import { requireRole, revokeSessions } from '@/lib/auth/guard'
 import { audit } from '@/lib/security/audit'
 import { hashPassword, validatePassword } from '@/lib/auth/password'
-import { isUniqueViolation, serverError } from '@/lib/api/errors'
+import { conflict, isMissingFunction, isUniqueViolation, MIGRACAO_006_PENDENTE, serverError } from '@/lib/api/errors'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireRole('admin')
@@ -53,13 +53,14 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   const { id } = await params
 
-  const { error } = await supabase
-    .from('users')
-    .delete()
-    .eq('id', id)
-    .eq('role', 'professor')
+  // Função da migração 006: com ela, as chamadas marcadas pelo professor são mantidas
+  const { data: excluidos, error } = await supabase.rpc('excluir_usuario', { p_user_id: id, p_role: 'professor' })
 
-  if (error) return serverError('professors.delete', error)
+  if (error) {
+    if (isMissingFunction(error)) return conflict(MIGRACAO_006_PENDENTE)
+    return serverError('professors.delete', error)
+  }
+  if (!excluidos) return NextResponse.json({ error: 'Professor não encontrado' }, { status: 404 })
   await audit(request, session, { action: 'delete', entity: 'user', entityId: id })
   return NextResponse.json({ success: true })
 }
